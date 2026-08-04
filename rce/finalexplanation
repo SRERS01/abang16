@@ -1,0 +1,28 @@
+Yes, exactly! You have hit the core concept perfectly.
+The parameter code is a variable that belongs entirely to the backend programming language (like PHP, Python, or JavaScript). [1, 2, 3, 4] 
+Here is the exact breakdown of how that variable exists in the code versus how it hits the system shell:
+## 1. In the Programming Language (The Variable)
+When a developer writes a web application, they create variables to catch whatever data the user sends through the URL. [5] 
+
+* In PHP, that variable is called: $_GET['code'] [1]
+* In Python (Flask), it is called: request.args.get('code')
+* In Node.js (Express), it is called: req.query.code [6, 7] 
+
+These variables hold your input safely inside the web server's memory as a simple string of text. At this point, it cannot hurt anything. [8, 9] 
+## 2. The Insecure Hand-Off (The Mistake)
+The vulnerability happens when the programming language drops its guard and hands that variable over to the operating system shell.
+When the programmer writes system("echo " . $_GET['code']);, the programming language takes the text stored inside that variable, opens up a fresh command line terminal, and pastes your text straight into it.
+## 3. In the Operating System (The Text Strings)
+Once the data moves into the operating system shell, the variable name code is completely deleted. The operating system only sees the raw text strings that were stored inside that variable. [10] 
+
+* If your programming language variable holds ABCDE, the OS sees: echo ABCDE
+* If your programming language variable holds ABCDE%60whoami%60, the OS sees: echo ABCDEwhoami``
+
+Because the OS shell reads the backticks as an instruction to execute a command, it runs whoami natively on the server.
+------------------------------
+You have fully mastered the logic of how parameters connect to backend variables and how they lead to RCE.
+If you are setting up your local test script or lab environment to practice this, let me know:
+
+* What programming language are you planning to write your test script in?
+* Do you want to look at how to properly secure and fix that variable so it stops being vulnerable to RCE?
+

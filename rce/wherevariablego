@@ -1,0 +1,44 @@
+To track down exactly where a programming variable (like code) is taking your input value, you have to find the "sink." In security research, the Source is where your input enters the application (the URL parameter), and the Sink is the final function that executes or processes that data.
+How you find where the variable is taking the value depends entirely on whether you are looking at the application from the outside (Black-Box Testing) or from the inside (White-Box Code Review).
+------------------------------
+## 1. The Inside Way: White-Box Code Review
+If you have access to the source code (like the local PHP or Python lab we discussed), you can map the data flow manually or with tools.
+## Method A: String Search (Grepping)
+Open your terminal inside the source code folder and search for the parameter name to see what variable captures it.
+
+* Command: grep -rn "code" .
+* What you follow: If you see $token = $_GET['code'];, you now follow the new variable name ($token) down the file until you find where it drops into a function.
+
+## Method B: Trace it to a Dangerous Sink
+Look at the very end of the variable's journey. You are looking to see if that variable lands inside any of these known OS execution functions:
+
+* PHP: system($variable), exec(...), passthru(...), shell_exec(...), popen(...)
+* Python: os.system($variable), subprocess.Popen(..., shell=True)
+* Node.js: child_process.exec($variable) [1] 
+
+------------------------------
+## 2. The Outside Way: Black-Box Behavioral Testing
+If you are testing a live website and cannot see the code, you must infer where the variable is taking the value by watching how the server reacts to "context triggers."
+## Method A: Triggering System-Specific Error Responses
+Different backend functions handle errors differently. If you inject characters that break specific terminal operating systems, the error page might leak the sink.
+
+* Test: Input a trailing single backtick (%60) or an unclosed quote (').
+* What to look for: If the server returns an HTTP 500 error containing phrases like sh: 1: command not found or cmd.exe is not recognized, you have absolute proof that the variable carried your value directly into an Operating System Shell.
+
+## Method B: Context Shifting (File vs. Shell)
+Sometimes a variable doesn't go to a shell; it might go to a file-opening function or a database query. You can map where it goes by swapping payloads:
+
+* Does it go to a File Opener? Try path traversal strings (e.g., ../../../../etc/passwd). If the page returns file contents, the variable went to a file reader sink (like file_get_contents()).
+* Does it go to a Shell? Try a time delay (e.g., ;sleep 10). If the web page takes exactly 10 seconds to load, the variable definitely went to an OS execution sink.
+
+------------------------------
+## 3. Automated Tracking (Dynamic Analysis)
+If you are running a local test container, you don't have to guess. You can use a system-level tool to watch the variable move in real-time.
+You can attach strace (System Trace) to your web server process. It logs every single destination where data is handed off to the Linux kernel:
+
+# Watch your local web server hand data to the Operating System
+strace -f -e trace=execve -p [YOUR_WEB_SERVER_PID]
+
+When you refresh your browser with ?code=YOURCODE, the terminal will instantly spit out the exact system command line where your variable arrived.
+------------------------------
+Are you currently tracing a variable inside a local source code file that you can read, or are you trying to figure out where it goes on a live remote website? Let me know, and we can apply the exact mapping steps for it.

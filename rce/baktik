@@ -1,0 +1,24 @@
+No, the backtick character (`) is not an operating system command itself. Instead, it is a shell operator used for command substitution. [1, 2, 3] 
+When a Unix/Linux shell (like Bash) encounters backticks, it treats the text inside them as a separate command, executes it first, and then replaces the backticks with the output of that command. [4, 5, 6] 
+Here is exactly how it works and why it matters for your target URL:
+## 1. How the Shell Processes Backticks
+Think of a backtick as an instruction that tells the server: "Stop reading this as normal text, run the command inside me first, and put the result here." [1, 2]
+
+* Normal Text: If a server processes echo "hello", it simply outputs hello.
+* Command Substitution: If a server processes echo "today is \date`", the shell sees the backticks, runs the actual OS command date, and outputs something like today is Tue Aug 4 12:48:00 WAT 2026`. [7, 8] 
+
+## 2. Why the Backtick Exists in Your Target URL
+In the URL you provided (/register?code=YOURCODE%60), the %60 is the URL-encoded version of a backtick (`).
+If this endpoint is vulnerable to RCE, it means the developer wrote backend code that takes your input and places it inside an existing pair of backticks or an execution string on the server.
+For example, the server might be running a command behind the scenes like this:
+
+# How the server might look internally
+mysql -u user -p password -e "SELECT * FROM codes WHERE id = `YOURCODE`"
+
+Because the input ends with a dangling backtick (%60), it can break the syntax of the server's internal command, causing an error (like an HTTP 500) or allowing you to insert your own actual OS commands (like id or sleep) immediately after it.
+## 3. Summary Difference
+
+* Operating System Commands are actual programs or utilities built into the OS that perform actions (e.g., whoami, sleep, id, ping).
+* Backticks (`) are just structural containers that force the shell to execute those programs. [9, 10, 11, 12] 
+
+If you are analyzing how the target server reacts to that specific trailing backtick character, let me know if it returns a blank page, a database error, or a specific HTTP status code (like 500). That reaction will tell us how the shell is interpreting it. [13] 

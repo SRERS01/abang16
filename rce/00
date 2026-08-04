@@ -1,0 +1,71 @@
+The techniques shared so far represent the advanced edge cases of command injection, but they are not an exhaustive list of every possible permutation that exists. In highly secure environments, researchers who find hidden RCE look for parser differentials, shell quirks, and environmental vulnerabilities that standard scanners cannot detect.
+Below is the comprehensive breakdown of every remaining advanced category and technique that exists for testing a parameter trailing with a backtick (%60).
+------------------------------
+## I. Advanced Syntax Closures (The Backtick Context)
+When an endpoint ends in %60 (`), the backend is often already executing a hardcoded command string and using your input inside it. If you do not close the syntax properly, the shell throws an error, and the command fails. [1] 
+## 1. Inverted Pair Injection
+If the backend code looks like: exec("ping -c 1 " . $_GET['code']);, then a trailing backtick in your input means the backend has an open backtick somewhere in its own code.
+
+* The Technique: You must supply a opening backtick to balance the pair, wrapping your command inside it so the shell evaluates it first.
+* Payload: ?code=YOURCODE%60;whoami;%60
+
+## 2. Double-Backtick Command Substitution Nesting
+In standard Unix shells, backticks do not nest easily unless escaped. If the developer already used backticks internally, your backtick might break the parser entirely.
+
+* The Technique: Use escaped backticks or mixed $() syntax to force execution inside an already substituted command layer.
+* Payload: ?code=YOURCODE%60\x60whoami\x60%60 or ?code=YOURCODE%60$(whoami)%60
+
+------------------------------
+## II. Bypassing Stringent WAFs (No-Alphanumeric RCE)
+When a Web Application Firewall blocks every single letter from A-Z and numbers 0-9, 99% of researchers assume RCE is impossible. However, Unix shells allow you to execute commands using only special characters.
+## 3. Automated Bitwise XOR Injections
+If the backend is running PHP or a loose interpreter before passing the data to the shell, you can create letters by XORing non-alphanumeric characters together.
+
+* The Technique: Brainfuck-style payloads that resolve to system commands after interpretation.
+* Payload Example: ?code=("%08%09%07%05"^"%7b%7b%7b%7b") (evaluates to a command string without using letters).
+
+## 4. Inline String Inversion (Reversal)
+If a filter looks for the string sh or bash, you can pass the command backwards and use the shell's built-in string manipulation or external utilities to reverse it dynamically before execution.
+
+* The Technique: Reverse execution routing.
+* Payload: ?code=%60echo+imaoit|rev%60 (reverses imaoit to execute tiuami / whoami).
+
+------------------------------
+## III. Exploiting Underlying Language Intermediaries
+Sometimes the execution isn't happening in the OS shell immediately. The input might be parsed by a template engine, a mathematical evaluator, or an expression language first.
+## 5. Inline Arithmetic Expansion Exploits
+Unix shells evaluate mathematical expressions inside $((...)). If you can inject into an arithmetic context, you can trigger command execution via array indexing or variable manipulation.
+
+* The Technique: Break out of mathematical operations to trigger subshells.
+* Payload: ?code=YOURCODE%60$((1+1))%60 or ?code=$(([##36]whoami))
+
+## 6. Dynamic Evaluation via Semicolon Injection (eval)
+If the language uses an internal eval() function before hitting the system terminal, standard shell characters like & might cause a syntax error in the programming language rather than the OS.
+
+* The Technique: Use language-specific statement terminators (like a semicolon in PHP/JavaScript) followed by a language execution function.
+* Payload: ?code=YOURCODE;system('whoami');
+
+------------------------------
+## IV. Environment & Memory Manipulation## 7. Shell Environment Variable Poisoning (Env Injection)
+If you cannot pass arguments directly to a command, you can sometimes inject new environment variables into the process space that alter how subsequent commands behave (similar to the historic Shellshock vulnerability).
+
+* The Technique: Injecting function definitions into environment variables.
+* Payload: ?code=() { :;}; echo; /bin/sleep 10
+
+## 8. Node.js/V8 Engine Memory Overflows
+If the backend is running server-side JavaScript (Node.js) and passing inputs to a child process, you can attempt to pass flags that alter the V8 engine's memory allocation, crashing the process to read error logs or forcing it into a debug state.
+
+* The Technique: Injecting V8 command-line options.
+* Payload: ?code=--max-old-space-size=1024
+
+------------------------------
+## Summary Checklist for This Specific URL
+To confirm which of these techniques actually exist on your target endpoint, monitor the application’s precise reactions:
+
+| If the server responds with... | ...It means... | ...Try this technique: |
+|---|---|---|
+| HTTP 500 (Syntax Error) | The backtick broke a code block. | Inverted Pair Injection to balance the backtick. |
+| HTTP 403 (Forbidden) | A WAF blocked your string. | No-Alphanumeric RCE or Alternative Whitespace. |
+| HTTP 200 (But no output) | The injection is working but blind. | Time-Based Testing or Out-of-Band (OOB) callbacks. |
+
+If you want to isolate the exact behavior you are seeing, let me know what HTTP status code the server returns when you send the URL exactly as it is. I can guide you on the next logical validation step.

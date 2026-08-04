@@ -1,0 +1,24 @@
+In a web address, the string ?code=YOURCODE%60 represents a specific parameter sent to a website's backend server.
+When broken down piece by piece, it reveals how data is being transmitted to the application:
+## 1. The Parameter Breakdown
+
+* ? (The Query Separator): This character tells the web browser that the main web address has ended, and a list of data inputs (parameters) is starting.
+* code= (The Parameter Name): This is the specific label or "variable" the backend code is looking for. In this case, the website expects some type of registration key, coupon code, or token.
+* YOURCODE (The Input Value): This is a placeholder representing the data a user typing into a form would normally send to the website.
+* %60 (The URL-Encoded Character): Web addresses cannot safely handle raw spaces or special punctuation symbols. To fix this, browsers use URL Encoding (converting symbols into a % followed by a two-digit hexadecimal number).
+* The code %60 translates directly to a literal backtick character (`). [1, 2] 
+
+## 2. What the Full String Literally Means
+When the server receives this web request, it parses the string and translates it back into normal text. The backend code reads your input exactly like this:
+
+* Parameter Name: code
+* Submitted Value: `YOURCODE``
+
+## 3. Why This Specific Structure Matters in Security
+In security assessments and bug hunting, a trailing backtick character (`) is highly significant because it is a special character used by Linux and Unix operating systems to perform command substitution (running a terminal command inside another command).
+If a researcher or automated scanner tests an endpoint and leaves a dangling %60 at the end, they are checking to see how the website handles abnormal punctuation:
+
+* If the site loads normally: The website safely treats the backtick as harmless text.
+* If the site crashes (HTTP 500 Error): The backtick likely broke the backend logic, indicating that the server might be improperly processing the input inside an active system shell or database query. [3] 
+
+If you are looking to see how a specific server handles this input, let me know what happens to the web page when that trailing %60 is included in the address. Does it load normally, or do you see a specific error message?

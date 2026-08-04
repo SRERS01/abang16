@@ -1,0 +1,62 @@
+In command injection and vulnerability research, structural containers (often called command separators, operators, or substitution mechanisms) are characters or sequences used to change how a shell or runtime environment interprets text.
+When a backend application passes user input to a system terminal, these containers are used to break out of the intended data context and force the execution of arbitrary operating system commands.
+Below is every major structural container that exists across Linux/Unix and Windows environments.
+------------------------------
+## I. Command Substitution Containers
+These containers tell the shell to execute the enclosed command first, and then place its text output directly into the surrounding command line. [1] 
+
+| Container | Operating System | Description / Example |
+|---|---|---|
+| `command` | Linux / Unix | Backticks: Evaluates the text inside as a shell command. Used in older POSIX standards. Example: echo \whoami`` |
+| $(command) | Linux / Unix / PowerShell | POSIX Substitution: Modern replacement for backticks. Allows nesting of multiple command layers. Example: echo $(whoami) |
+| $<command> | Older Unix Shells | Alternative Substitution: Rare syntax used in older or specialized shell variants to capture command streams. |
+
+------------------------------
+## II. Sequential & Conditional Operators (Inline Block Containers)
+These containers allow you to chain multiple commands together on a single line, running them either sequentially or based on the success of the previous command.
+
+| Container | Operating System | Description / Example |
+|---|---|---|
+| ; | Linux / Unix | Semicolon: Runs the second command unconditionally after the first one finishes. Example: id; whoami |
+| %0A / \n | Linux / Windows | Newline Character: Forces the shell interpreter to treat the next string as a completely new command line. Example: id%0Awhoami |
+| %0D / \r | Linux / Windows | Carriage Return: Similar to a newline, it cuts off the current input buffer and starts a fresh instruction line. |
+| && | Linux / Windows | Logical AND: Runs the second command only if the first command succeeds (returns exit code 0). Example: ping -c 1 127.0.0.1 && whoami |
+| || | Linux / Windows | Logical OR: Runs the second command only if the first command fails (returns a non-zero exit code). Example: false || whoami |
+
+------------------------------
+## III. Data Stream & Piping Containers
+These containers hijack the input and output channels of the terminal, sending data from one process into another or redirecting files. [2, 3] 
+
+| Container | Operating System | Description / Example |
+|---|---|---|
+| | | Linux / Windows | Pipe: Takes the standard output text of the left command and feeds it as the direct input to the right command. Example: cat /etc/passwd | grep root |
+| > | Linux / Windows | Output Redirection: Overwrites a file on disk with the output text of your command. Example: whoami > /tmp/output.txt |
+| >> | Linux / Windows | Append Redirection: Appends the command output to the end of a file without erasing existing contents. |
+| < | Linux / Unix | Input Redirection: Forces a command to read its arguments from a specified file instead of user input. Example: cat < /etc/passwd |
+
+------------------------------
+## IV. Mathematical & Arithmetic Evaluation Containers
+These containers force the shell into a mathematical or logical execution state. In complex scenarios, these states can be broken out of to trigger binary executions. [4] 
+
+| Container | Operating System | Description / Example |
+|---|---|---|
+| $((expression)) | Linux / Unix | Arithmetic Expansion: Evaluates standard mathematical operations. Can nest shell variables or calls. Example: echo $((1+1)) |
+| $[expression] | Older Linux / Bash | Deprecated Arithmetic: An older syntax for mathematical expansion still supported on older Linux builds. |
+
+------------------------------
+## V. Target-Specific Windows Inline Containers
+Windows environments (CMD and PowerShell) feature unique variable and command processing containers distinct from Linux environments. [5] 
+
+| Container | Environment | Description / Example |
+|---|---|---|
+| %variable% | Windows CMD | Environment Variables: Expands internal Windows properties. Can be used to concatenate strings. Example: %COMSPEC% (points to cmd.exe) |
+| & | Windows CMD | Command Separator: The Windows equivalent of the Unix semicolon. Runs commands sequentially. Example: dir & whoami |
+
+------------------------------
+## Pro-Tip for Triage
+When analyzing the ?code=YOURCODE%60 endpoint, you are looking to see if the web application's backend collapses when encountering these operators. If you swap out the trailing backtick (%60) for a URL-encoded newline (%0A) or a semicolon (%3B), you can observe whether the application throws a different error code or changes its response layout.
+If you test these characters on your target container or environment, let me know:
+
+* Does substituting the backtick with a semicolon (%3B) or newline (%0A) alter the server behavior?
+* Do you notice any changes in error patterns between them?
+

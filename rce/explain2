@@ -1,0 +1,20 @@
+Yes, that is a perfect way to think about it!
+The ? means the web page location (the URL path) has officially ended, and the data inputs (the parameters) are starting. [1, 2] 
+Here is exactly how the backend server reads that split:
+## The URL Anatomy
+When you look at https://domain.com:
+
+   1. https://domain.com
+   * What it is: The URL Path.
+      * Server's reaction: "Go find the folder or file named 'register' on my hard drive."
+   2. ?
+   * What it is: The Divider.
+      * Server's reaction: "Stop looking for folders. Everything after this is just raw data I need to process."
+   3. code=YOURCODE
+   * What it is: The Parameters (Query String).
+      * Server's reaction: "Take the value 'YOURCODE' and hand it to the 'register' file so it can use it." [3, 4] 
+   
+## Why this matters for your RCE test
+Because the ? ends the path, you cannot use it to change which file you are opening. You can only use it to change what data goes into that file.
+If the application is vulnerable to RCE, the file (register) is taking your input (`YOURCODE``) and passing it directly into an operating system command background process.
+If you are looking at a URL right now, are there any other symbols after the ?, like an & symbol? Let me know, and I can explain what that symbol dividers next!

