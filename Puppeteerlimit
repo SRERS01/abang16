@@ -1,0 +1,21 @@
+No, these are not all the vulnerabilities that exist in the entire cybersecurity landscape. Instead, this list represents the specific categories of vulnerabilities that Puppeteer is structurally capable of finding or verifying.
+Because Puppeteer is fundamentally a automation tool for web browsers, its testing capabilities are constrained by what a web browser can interact with. [1, 2, 3] 
+## What Puppeteer Can Test
+Puppeteer is highly effective for testing vulnerabilities that require a real browser interface, JavaScript execution, or human-like interaction:
+
+* Client-Side Flaws: DOM-XSS, Cross-Site Scripting (XSS), Open Redirects, and Broken CSRF implementations.
+* Logical & Auth Flaws: Insecure Direct Object References (IDOR/BOLA), multi-step authentication bypasses, and form-based brute-forcing.
+* Leaked Data: Hidden API endpoints, hardcoded credentials inside frontend JavaScript code, and missing security headers. [4, 5, 6, 7, 8] 
+
+## What Puppeteer CANNOT Test Directly
+Puppeteer cannot directly discover low-level network flaws, server-side infrastructure bugs, or binary-level security issues because a browser engine does not operate at that layer. To find these, you need traditional tools like Nuclei, Nmap, Burp Suite, or sqlmap:
+
+* Server-Side Code Execution: Remote Code Execution (RCE), Local File Inclusion (LFI), and Server-Side Template Injection (SSTI).
+* Database Injections: Structural SQL Injection (SQLi) or NoSQL Injection. (Though Puppeteer can inject the text payload into a form field, a specialized scanner is required to analyze the blind timing or error responses from the database).
+* Protocol & Network Flaws: SSL/TLS configuration errors, open ports, DNS zone transfers, or SSH/FTP vulnerabilities. [9, 10, 11, 12, 13] 
+
+## Summary Strategy
+In bug bounty hunting, you should never rely on Puppeteer as an all-in-one vulnerability scanner. Instead, use tools like Nuclei to rapidly scan infrastructure for known CVEs and server-side bugs, and then use Puppeteer to execute heavy, dynamic client-side tests like tracking DOM-XSS or scraping hidden frontend APIs. [14, 15, 16] 
+Which specific vulnerability type are you looking to script first—a client-side behavior (like XSS) or a server-side check?
+
+

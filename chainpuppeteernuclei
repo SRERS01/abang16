@@ -1,0 +1,104 @@
+Here is a complete, production-ready Node.js automation script that chains both tools together.
+It uses Puppeteer to bypass login forms and extract authentication headers, then automatically executes Nuclei via the system terminal to run vulnerability scans using that fresh authenticated context.
+## Step 1: Install the Necessary Module
+To allow Node.js to execute terminal commands (like Nuclei) directly from your JavaScript file, make sure you have the core dependencies ready. No extra installation is needed for terminal execution since Node.js has a built-in library called child_process.
+## Step 2: Create the Orchestrator Script
+Create a new file named automation.js:
+
+nano automation.js
+
+Paste this exact script structure into the file:
+
+import puppeteer from 'puppeteer';import { exec } from 'child_process';import util from 'util';
+// Convert terminal execution into an async/await functionconst execPromise = util.promisify(exec);
+async function startBountyPipeline() {
+  const targetDomain = 'https://example.com'; // Change this to your target
+  let authToken = '';
+
+  console.log('[+] Starting Phase 1: Puppeteer Authentication...');
+
+  try {
+    // 1. Launch Puppeteer using your local Ubuntu Chromium path
+    const browser = await puppeteer.launch({
+      executablePath: '/usr/bin/chromium-browser',
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    
+    const page = await browser.newPage();
+    
+    // Go to login page
+    await page.goto(`${targetDomain}/login`, { waitUntil: 'networkidle2' });
+
+    // --- AUTOMATE LOGIN ACTIONS ---
+    // Update selectors (#username, #password, #submit-btn) to match your target site
+    await page.type('#username', 'your_bounty_username');
+    await page.type('#password', 'your_secure_password');
+    await page.click('#submit-btn');
+    
+    // Wait for the dashboard or home page to finish loading after login
+    await page.waitForNavigation({ waitUntil: 'networkidle2' });
+    console.log('[+] Login successful. Extracting session tokens...');
+
+    // Extract your target session identifier from localStorage, sessionStorage, or cookies
+    authToken = await page.evaluate(() => {
+      return localStorage.getItem('auth_token') || sessionStorage.getItem('jwt');
+    });
+
+    await browser.close();
+
+    if (!authToken) {
+      throw new Error('Could not extract authentication token from the browser session.');
+    }
+
+    console.log(`[+] Token Extracted: Bearer ${authToken.substring(0, 10)}...`);
+
+  } catch (error) {
+    console.error(`[-] Puppeteer Phase Failed: ${error.message}`);
+    return;
+  }
+
+  // --- PHASE 2: RUN NUCLEI ---
+  console.log('[+] Starting Phase 2: Launching Nuclei with Authenticated Context...');
+
+  // Construct your Nuclei terminal command injecting the custom Header parameter
+  // -H passes the custom authorization header discovered by Puppeteer
+  // -tags targets specific high-value vulnerability categories
+  const nucleiCommand = `nuclei -u "${targetDomain}/dashboard" -H "Authorization: Bearer ${authToken}" -tags cve,lfi,sqli,ssrf,rce -severity critical,high,medium`;
+
+  console.log(`[Executing]: ${nucleiCommand}`);
+
+  try {
+    // Execute Nuclei in the background and wait for it to complete
+    const { stdout, stderr } = await execPromise(nucleiCommand);
+    
+    console.log('\n=== NUCLEI SCAN RESULTS ===');
+    console.log(stdout);
+
+    if (stderr) {
+      console.log('=== NUCLEI LOGS/ERRORS ===');
+      console.log(stderr);
+    }
+
+  } catch (scanError) {
+    // If Nuclei finds bugs or exits with a code, print the findings caught in execution
+    console.log('\n=== NUCLEI FINDINGS/OUTPUT ===');
+    console.log(scanError.stdout);
+  }
+}
+// Run the automation pipeline
+startBountyPipeline();
+
+Press Ctrl+O, Enter to save, and Ctrl+X to exit.
+## Step 3: Run the Pipeline
+Run the script through Node.js to fire off the automated attack path:
+
+node automation.js
+
+## Script Execution Overview
+
+   1. Headless Execution: Puppeteer fires up Chromium quietly in the background without opening a physical window.
+   2. Session Interception: It enters the web app, submits credentials, handles dynamic JavaScript redirection, and steals the cryptographic session tokens or cookies.
+   3. Nuclei Handoff: Node.js immediately constructs a terminal shell command, passes the token inside a custom -H "Authorization: ..." header flag, and launches Nuclei against the hidden or authenticated sections of the target domain.
+
+Do you need help modifying the script's web elements (#username, #password) to match a specific bug bounty target login page you are testing right now?
+

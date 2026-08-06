@@ -1,0 +1,227 @@
+Puppeteer is incredibly powerful for bug bounties because it lets you automate actions inside a real browser engine, bypassing traditional script blocks and revealing vulnerabilities that raw HTTP clients (like cURL) miss.
+Here are the primary ways bug bounty hunters use Puppeteer, complete with quick automation concepts.
+## 1. Mass XSS Validation (Dynamic Verification)
+Instead of guessing if a payload fires, Puppeteer can detect the exact moment an alert() or print() dialog triggers in the DOM.
+
+import puppeteer from 'puppeteer';
+const browser = await puppeteer.launch({
+  executablePath: '/usr/bin/chromium-browser',
+  args: ['--no-sandbox']
+});const page = await browser.newPage();
+// Catch the XSS alert if it fires
+page.on('dialog', async dialog => {
+  console.log(`[!] XSS Triggered! Alert Message: ${dialog.message()}`);
+  await dialog.dismiss();
+  await browser.close();
+});
+// Test your payload target URLawait page.goto('https://target.com<script>alert(1)</script>', {
+  waitUntil: 'networkidle2'
+});
+await browser.close();
+
+## 2. Post-Authentication Crawling & Scoping
+You can use Puppeteer to log into a target portal once, extract session cookies, and automatically spider pages that lie behind the login wall.
+
+// Perform login actions automaticallyawait page.goto('https://target.com');await page.type('#username', 'bounty_hunter');await page.type('#password', 'SecurePass123!');await page.click('#submit-btn');await page.waitForNavigation();
+// Extract cookies to share with tools like Burp Suite or Nucleiconst cookies = await page.cookies();
+console.log(JSON.stringify(cookies, null, 2));
+
+## 3. Extracting Hidden API Endpoints
+Many modern Single Page Applications (SPAs built with React, Vue, or Angular) load API routes dynamically. You can use Puppeteer to listen to background network chatter to hunt for hidden IDORs or open endpoints. [1] 
+
+// Listen to all network requests made by the page
+page.on('request', request => {
+  const url = request.url();
+  if (url.includes('/api/v')) {
+    console.log(`[API Found]: ${url} [Method]: ${request.method()}`);
+  }
+});
+await page.goto('https://target.com');
+
+## 4. DOM-based Race Conditions
+You can open 10 or 20 headless browser pages simultaneously inside a single script execution block to hammer an API endpoint or submit forms at the exact same millisecond to test for business logic flaws and race conditions.
+## 5. Automated Screenshotting for Subdomain Takeovers
+When scanning thousands of subdomains, use Puppeteer to capture visual screenshots of every alive domain. You can quickly scroll through the images to look for signature cloud hosting error screens (e.g., "AWS 404", "GitHub Pages NoSuchBucket") signaling an easy takeover.
+
+await page.goto('https://target.com');await page.screenshot({ path: 'subdomain_evidence.png' });
+
+Given that your script file was named fridahook.js, are you planning to pair Puppeteer with Frida for mobile/API hooking, or are you focusing purely on web application vulnerabilities?
+
+[1] [https://github.com](https://github.com/elementalsouls/Claude-BugHunter/blob/main/USAGE.md)
+Combining Puppeteer and Frida allows you to attack both the web frontend and mobile/desktop application runtimes simultaneously.
+Here are the top use cases for using both tools in a bug bounty workflow.
+## 1. Replaying Web Traffic Into Mobile Runtimes
+You can use Puppeteer to scrape valid API tokens, CSRF tokens, or session IDs from a web app dashboard, then immediately feed those fresh values into a Frida script that modifies a mobile app's memory on the fly to bypass authentication checks.
+## 2. Bypassing Advanced Web & Mobile CAPTCHAs
+When dealing with targets that monitor user behavior (like Cloudflare or Akamai), you can use Puppeteer to solve or bypass web-based authentication flows. Once authenticated, you can use Frida to inject those valid session hooks directly into the thick-client or mobile application binary.
+## 3. Automated API Fuzzing via Mobile Hooking
+If a mobile app uses complex request signing (like custom HMAC headers generated in native C/C++ code), you cannot easily fuzz it in Burp Suite. You can use Frida to hook the native cryptographic function, expose it as a local RPC (Remote Procedure Call) service, and use Puppeteer to drive a local web interface that feeds payloads directly into the mobile app's encryption engine.
+## Implementation Blueprint
+Here is how you structure a script that coordinates both Puppeteer and Frida together in Node.js:
+
+import puppeteer from 'puppeteer';import frida from 'frida';
+async function main() {
+  // --- 1. PUPPETEER LOGIC: Extract dynamic session token ---
+  const browser = await puppeteer.launch({
+    executablePath: '/usr/bin/chromium-browser',
+    args: ['--no-sandbox']
+  });
+  const page = await browser.newPage();
+  await page.goto('https://target.com');
+  
+  // (Perform your automated login actions here...)
+  
+  // Extract a secret dynamic token from localStorage or cookies
+  const sessionToken = await page.evaluate(() => localStorage.getItem('api_token'));
+  await browser.close();
+  
+  console.log(`[+] Captured Web Token: ${sessionToken}`);
+
+  // --- 2. FRIDA LOGIC: Inject token into mobile/native process ---
+  // Connect to the target process (e.g., a local emulator or app)
+  const session = await frida.attach('target_process_name');
+  
+  // Inject your instrumentation code, passing the Puppeteer token into memory
+  const script = await session.createScript(`
+    // Frida script running inside the target binary
+    const secretToken = "${sessionToken}";
+    console.log("[Frida] Overriding internal auth header with: " + secretToken);
+    
+    // Hook target functions here to inject the token dynamically
+  `);
+  
+  await script.load();
+  console.log('[+] Frida script loaded successfully with web session context.');
+}
+
+main().catch(console.error);
+
+To run this unified setup, you will need to add the Frida Node bindings to your project. Run this command to install them next to Puppeteer:
+
+npm i frida
+
+Are you targeting an Android app, an iOS app, or a desktop heavy client with your Frida hooks?
+
+Here are concrete implementations for Android, iOS, and Desktop Thick Clients showing exactly how Puppeteer steals a web context and Frida injects it into the native app runtime.
+## Step 0: Install the Frida Node Bindings
+Before running any of these, install the Frida module in your project:
+
+npm i frida
+
+------------------------------
+## Case 1: Android (Bypassing Root Detection / SSL Pinning via Web Token)
+In this scenario, Puppeteer grabs a fresh, valid JWT from a web session, and Frida hooks the Android OkHttp3 networking library to inject that token into the mobile headers, bypassing native authentication blocks.
+
+import puppeteer from 'puppeteer';import frida from 'frida';
+async function runAndroidBounty() {
+  // 1. Puppeteer gets the token
+  const browser = await puppeteer.launch({ executablePath: '/usr/bin/chromium-browser', args: ['--no-sandbox'] });
+  const page = await browser.newPage();
+  await page.goto('https://target.com'); // Automate login here
+  const token = await page.evaluate(() => localStorage.getItem('auth_token'));
+  await browser.close();
+
+  // 2. Frida injects it into the Android App
+  const device = await frida.getUsbDevice();
+  const pid = await device.spawn(['com.target.app']);
+  const session = await device.attach(pid);
+
+  const fridaCode = `
+    Java.perform(function() {
+      // Hook OkHttp3 interceptor to force the web token into mobile requests
+      var Interceptor = Java.use('okhttp3.Interceptor');
+      var Builder = Java.use('okhttp3.Request$Builder');
+
+      Builder.addHeader.implementation = function(name, value) {
+        if (name === "Authorization") {
+          console.log("[Frida] Replacing old mobile header with Puppeteer web token!");
+          return this.addHeader(name, "Bearer " + "${token}");
+        }
+        return this.addHeader(name, value);
+      };
+    });
+  `;
+
+  const script = await session.createScript(fridaCode);
+  await script.load();
+  await device.resume(pid);
+}
+
+------------------------------
+## Case 2: iOS (Injecting Web Session State into NSUserDefaults)
+Here, Puppeteer completes a complex CAPTCHA-protected login on the web. Frida then catches the target iOS app at launch and forcefully overwrites its local configuration storage (NSUserDefaults) with the cookie parameters extracted by Puppeteer.
+
+import puppeteer from 'puppeteer';import frida from 'frida';
+async function runIOSBounty() {
+  // 1. Puppeteer gets cookie data
+  const browser = await puppeteer.launch({ executablePath: '/usr/bin/chromium-browser', args: ['--no-sandbox'] });
+  const page = await browser.newPage();
+  await page.goto('https://target.com'); 
+  const cookies = await page.cookies();
+  const sessionCookie = cookies.find(c => c.name === 'session_id').value;
+  await browser.close();
+
+  // 2. Frida overwrites iOS NSUserDefaults memory
+  const device = await frida.getUsbDevice();
+  const pid = await device.spawn(['com.target.iosapp']);
+  const session = await device.attach(pid);
+
+  const fridaCode = `
+    if (ObjC.available) {
+      var NSUserDefaults = ObjC.classes.NSUserDefaults;
+      var NSString = ObjC.classes.NSString;
+
+      var defaults = NSUserDefaults.standardUserDefaults();
+      var key = NSString.stringWithString_("stored_session_key");
+      var value = NSString.stringWithString_("${sessionCookie}");
+
+      // Overwrite the mobile app storage with web session data
+      defaults.setObject_forKey_(value, key);
+      defaults.synchronize();
+      console.log("[Frida] Successfully synchronized iOS app data with Puppeteer session.");
+    }
+  `;
+
+  const script = await session.createScript(fridaCode);
+  await script.load();
+  await device.resume(pid);
+}
+
+------------------------------
+## Case 3: Desktop Thick Client (Electron / C++ Apps Memory Hooking)
+Many modern desktop apps (like Discord, Slack, or trading terminals) run on Electron (JavaScript) or C++. This script uses Puppeteer to grab API keys, then uses Frida to intercept system memory or file writes of the desktop application to dynamically read/write backend flags.
+
+import puppeteer from 'puppeteer';import frida from 'frida';
+async function runDesktopBounty() {
+  // 1. Puppeteer extracts backend developer configurations
+  const browser = await puppeteer.launch({ executablePath: '/usr/bin/chromium-browser', args: ['--no-sandbox'] });
+  const page = await browser.newPage();
+  await page.goto('https://target.com');
+  const devApiKey = await page.evaluate(() => window.ENV_CONFIG.API_KEY);
+  await browser.close();
+
+  // 2. Frida attaches to a running local Desktop binary process
+  const session = await frida.attach('TargetDesktopApp');
+
+  // If Electron/Node target, hook internal buffers. If C++, hook native memory allocation
+  const fridaCode = `
+    const targetBuffer = "${devApiKey}";
+    
+    // Example: Intercepting network strings inside native libc/msvcrt memory
+    const openAddr = Module.findExportByName(null, 'open') || Module.findExportByName(null, 'CreateFileW');
+    
+    Interceptor.attach(openAddr, {
+      onEnter: function(args) {
+        console.log("[Frida] Thick client opening file asset. Forcing Dev API Key: " + targetBuffer);
+        // Custom memory manipulation logic here...
+      }
+    });
+  `;
+
+  const script = await session.createScript(fridaCode);
+  await script.load();
+  console.log("[+] Interception routine established on thick client.");
+}
+
+Which of these platforms—Android, iOS, or Desktop—do you want to set up on your Ubuntu machine first to start testing?
+

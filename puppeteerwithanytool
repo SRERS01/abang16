@@ -1,0 +1,37 @@
+In bug bounty hunting, Puppeteer serves as the "connective tissue" of your pipeline. Because it runs inside a real Node.js environment, it can capture complex browser state data and pass it to specialized hacking tools. [1, 2] 
+The primary bug bounty tools to pair with Puppeteer are organized below by tactical function:
+## 1. Interception & Proxies
+You can force Puppeteer's headless browser traffic to route directly through a local interception tool to log data or apply custom matchers. [3, 4] 
+
+* Burp Suite / Caido: Use the --proxy-server=http://127.0.0.1:8080 launch argument in Puppeteer to funnel authentic user actions, OAuth redirects, and logged-in traffic straight into your proxy history for manual mapping. [5, 6] 
+* Mitmproxy: A lightweight CLI proxy tool ideal for script-based automation. You can use Puppeteer to click around a target application while mitmproxy saves the raw traffic streams into searchable files. [7, 8, 9] 
+
+## 2. Static Analysis & Extraction
+When Puppeteer visits a site, it actively tracks the network panel. You can tell it to extract loaded scripts and feed them into regex-driven scanners. [10, 11, 12, 13] 
+
+* LinkFinder: Use Puppeteer to trigger various actions on an app dashboard, capture the specific .js files that load, and run them through LinkFinder to map unlinked API routes. [7, 10, 14, 15] 
+* SecretFinder: Pass downloaded scripts from Puppeteer's network responses into [SecretFinder](https://github.com/m4ll0k/SecretFinder) to scan for cloud storage buckets, leaked hardcoded private keys, and slack webhooks. [7, 10] 
+* Mantra: A dedicated security tool designed to track down API keys specifically from browser JavaScript files. [16] 
+
+## 3. Vulnerability Fuzzers & Scanners
+You can use Puppeteer to crawl deep into a target and handle complex login obstacles, then forward that unmapped terrain to aggressive scanners. [7, 17, 18] 
+
+* Nuclei: As established, you can use Puppeteer to intercept valid session tokens and append them directly to [Nuclei's](https://github.com/projectdiscovery/nuclei) -H authorization header parameter to find server-side vulnerabilities behind a login page.
+* FFUF / Feroxbuster: Use Puppeteer to parse and dump internal web structures or custom paths (like parameters dynamically loaded into input boxes) to instantly build highly contextual wordlists for fuzzers. [7, 19] 
+* DalFox / XSStrike: Puppeteer can feed parameters discovered during live browsing sessions directly into [DalFox](https://github.com/hahwul/dalfox) or [XSStrike](https://github.com/s0md3v/XSStrike) for highly optimized XSS fuzzing. [20] 
+
+## 4. Reconnaissance & Filtering
+When handling vast, untrusted lists of corporate assets, Puppeteer acts as an efficient pre-filter.
+
+* Subfinder / Amass: Run a large discovery script with [Subfinder](https://github.com/projectdiscovery/subfinder) to uncover thousands of domains. Then, loop those results into a Puppeteer script to visually screenshot every active service to inspect for abandoned frameworks or visual bugs. [7, 10, 19, 21, 22] 
+* HTTPX: Use [HTTPX](https://github.com/projectdiscovery/httpx) to probe a massive asset list to determine which subdomains are actively responding to web traffic, filtering out dead servers before booting up Puppeteer to execute heavy browser automation on live platforms. [7, 19, 23, 24] 
+
+## 5. Stealth & Operational Enhancements
+Targets with strict firewalls or bot protections will block standard Puppeteer setups. You can add specific libraries directly to your script to maintain access: [25, 26, 27] 
+
+* puppeteer-extra-plugin-stealth: A plugin designed to modify your headless browser's fingerprints, neutralizing standard anti-bot trackers (like Akamai or Cloudflare) to ensure your automated tests aren't immediately blocked.
+* puppeteer-real-browser: An alternative package that runs a specialized browser configuration to cleanly solve and pass complex bot verification checks during automated runs. [28, 29, 30, 31, 32] 
+
+Are you interested in seeing a code example showing how to automatically push Puppeteer's network traffic through Burp Suite or another interceptor proxy?
+
+
