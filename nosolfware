@@ -1,0 +1,37 @@
+To test how a device can affect a company network, security professionals use penetration testing (pentesting) tools. These tools simulate how an attacker moves from a compromised device to the rest of the enterprise. [1, 2, 3, 4, 5] 
+The exact tools depend on what stage of the attack you are testing. [6, 7] 
+## 1. Network Discovery & Scanning
+Before an attacker can move laterally, they need to see what else is on the network. [8] 
+
+* Nmap: The industry standard for network discovery and vulnerability scanning. It maps out active devices, open ports, and operating systems. [9, 10, 11, 12, 13] 
+* Responder: A tool that listens for and intercepts local network broadcast protocols (like LLMNR and NBT-NS). It is used to steal network password hashes directly from the wire. [14, 15] 
+
+## 2. Exploitation & Initial Access
+These tools allow you to test if a device can be used to launch exploits against internal servers. [16, 17] 
+
+* Metasploit Framework: A massive database of known exploits. It automates the process of targeting unpatched vulnerabilities found on other corporate machines. [18, 19, 20] 
+* Impacket: A collection of Python classes for working with network protocols (especially Windows SMB). It is heavily used to execute commands remotely on other network systems. [21, 22, 23, 24] 
+
+## 3. Post-Exploitation & Lateral Movement
+Once inside, these frameworks simulate how a hacker controls the compromised device and expands their reach. [25, 26, 27] 
+
+* Cobalt Strike / Brute Ratel: Advanced command-and-control (C2) frameworks used by red teams to simulate sophisticated, stealthy corporate network compromises. [28, 29, 30] 
+* BloodHound: A visual tool that maps out Active Directory relationships. It shows exactly which user accounts or devices have a direct path to becoming a Domain Administrator (gaining full company control). [31, 32, 33] 
+* Mimikatz: A tool used to extract plain-text passwords, hashes, and Kerberos tokens from the memory of a Windows device. [34, 35] 
+
+## 4. Vulnerability Management
+
+* Nessus / OpenVAS: Automated scanners that you run from the perspective of the device to see every missing patch and configuration flaw visible on the corporate network. [36] 
+
+------------------------------
+## Security Warning
+Only run these tools on networks and devices that you own or have explicit, written legal permission to test. Unauthorized scanning or testing on a corporate network can trigger security alerts, violate company policy, and lead to termination or legal prosecution. [37, 38, 39, 40, 41] 
+To give you the most accurate advice, tell me:
+
+* Are you trying to test a Windows machine, a Linux system, or an IoT device?
+* Do you want to focus on scanning for vulnerabilities or simulating a full network takeover?
+* What is your current level of experience with command-line tools?
+
+Let me know your goals so I can guide you through the safest setup!
+
+
