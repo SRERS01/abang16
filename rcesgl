@@ -1,0 +1,36 @@
+Not automatically, but in practice, yes—it usually creates a domino effect.
+Whether a single point of failure compromises the entire infrastructure depends entirely on how the company’s network architecture is designed.
+Here is exactly how an attack spreads from a single vulnerability to the rest of the system.
+------------------------------
+## The Domino Effect: How One Vulnerability Spreads## 1. With RCE (Remote Code Execution)
+If an attacker achieves RCE on a single microservice (e.g., a minor feature like a "PDF Profile Generator"), they now control that specific server container. From there, they will attempt Lateral Movement: [1] 
+
+* Network Pivoting: The compromised server sits inside the company's internal private network. The attacker will install scanning tools on that server to find other internal databases and systems that are completely invisible from the public internet.
+* Token Stealing: They will scrape the compromised server's memory or environment variables to steal API keys, AWS cloud tokens, and internal passwords used to talk to other services.
+
+## 2. With SQL Injection (SQLi)
+If an attacker finds SQLi on a single input box, they control the database query.
+
+* Database Takeover: If the database handles multiple applications (e.g., the billing database sits on the same server as the public blog database), the attacker can read, modify, or delete data across all of those applications.
+* Upgrading to RCE: In poorly configured environments, attackers can use database features (like Microsoft SQL Server's xp_cmdshell or PostgreSQL's COPY ... FROM PROGRAM) to execute commands on the underlying operating system, turning a data bug into full server control. [2] 
+
+------------------------------
+## How Highly Secure Networks Stop the Spread
+Highly secure companies assume that a breach will happen. They implement a strategy called Defense in Depth to ensure that an exploit at a single point does not affect everything else:
+
+| Security Defense | How It Stops the Domino Effect |
+|---|---|
+| Network Segmentation | Isolates servers into tiny, locked-down zones (VPCs). If the PDF generator is hacked, firewall rules strictly block it from talking to the core user database. |
+| Principle of Least Privilege | Ensures the web application connects to the database using a restricted user account. Even with SQLi, the account only has permission to read one table and cannot touch administrative data or drop tables. |
+| Containerization (Docker/K8s) | Runs services inside isolated, read-only containers. An attacker who gets RCE is trapped inside a tiny "jail" with no access to the host operating system or neighboring containers. |
+
+------------------------------
+## The Reality of Modern Bug Bounty Hunting
+Most high-paying bug bounties are not awarded for just finding a single SQLi or RCE. They are awarded for Exploit Chaining:
+
+[Step 1: SSRF Bug] ──> [Step 2: Access Internal Network] ──> [Step 3: Exploit Unauthenticated SQLi] ──> [Step 4: RCE & Full Takeover]
+
+As a hunter, your goal is to find that first weak link, and then use your automated tools to see how deep into the network you can go.
+Since you are looking at how vulnerabilities connect across systems, do you want to learn how to pivot or chain vulnerabilities using tools like Puppeteer and Nuclei together?
+
+
