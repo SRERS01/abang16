@@ -1,0 +1,35 @@
+AI excels at finding high-volume, syntax-based code bugs, while humans excel at finding contextual, multi-layered business logic flaws.
+The landscape of vulnerability research has shifted drastically, with autonomous AI models executing millions of tests to find deep mathematical and memory flaws. However, human intuition and contextual judgment remain completely irreplaceable for understanding how an application is meant to operate.
+The specific types of vulnerabilities that each side is uniquely equipped to discover are broken down below.
+------------------------------
+## Vulnerabilities AI Can Find (That Humans Usually Miss)
+AI excels at detecting hidden, complex, and math-heavy bugs buried deep inside massive amounts of code, including flaws that standard automation has missed for decades.
+
+* Deep Memory-Safety Flaws: AI models can perfectly track complex memory allocations across huge codebases to spot incredibly rare Use-After-Free (UAF) or Buffer Overflow conditions.
+* Decades-Old Legacy Code Bugs: AI can audit millions of lines of open-source legacy systems simultaneously, uncovering hidden Integer Overflows or kernel-level flaws that went unnoticed for 20+ years.
+* Cryptographic Protocol Weaknesses: Advanced AI models can spot mathematical edge cases to crack round-reduced encryption algorithms or weaken post-quantum digital signature schemes.
+* Hidden Flaws in Widespread Firmware Libraries: AI excels at scanning obscure, deeply embedded software ecosystems (like file systems used in millions of IoT devices) to find unknown critical bugs simultaneously.
+* Race Conditions in Concurrent Code: AI can simulate complex multi-threaded timing sequences to detect highly specific Time-of-Check to Time-of-Use (TOCTOU) flaws that human eyes rarely map out by hand.
+
+------------------------------
+## Vulnerabilities Humans Can Find (That AI Cannot)
+AI lacks common sense, real-world context, and a true understanding of a company’s operational boundaries. Because of this, humans dominate in finding flaws born from design intent and human behavior.
+
+* Business Logic Flaws: AI cannot understand the intent of a feature. For example, a human hacker will easily find a flaw where changing a User_ID parameter in a URL allows them to view another customer's bank statement, whereas an AI sees a completely valid, error-free API call.
+* Flaws in Complex "Chained" Attack Paths: AI struggles to dream up multi-step strategies. A human hacker can intentionally combine three minor, low-risk bugs (e.g., an exposed configuration file + an unvalidated redirect + a weak file upload system) into a single high-severity server takeover.
+* Broken Object Level Authorization (BOLA/IDOR): An AI system cannot easily judge whether a specific user should have access to a specific database object based on real-world company trust models.
+* Physical and Social Engineering Traps: AI cannot trick a building receptionist into giving up a USB drive, nor can it improvise a dynamic phone call to manipulate an IT administrator into resetting a password.
+* Novel "Zero-Day" Vulnerability Classes: AI can only find variants of what it has already seen in its massive training data. If a brand-new class of software vulnerability is created by a completely new technology, a human mind must think outside the box to discover it first.
+
+------------------------------
+## Quick Comparison Matrix
+
+| Flaw Category | AI Capability | Human Capability |
+|---|---|---|
+| Memory & Math Errors | Excellent: Catches bugs that automated fuzzers miss. | Slow: Very difficult to manually trace through massive codebases. |
+| Business Logic & Intent | Poor: Cannot differentiate an intended feature from an abused feature. | Excellent: Easily spots design errors and trust model violations. |
+| Code Auditing Scale | Infinite: Can scan thousands of projects in weeks. | Limited: Restricted by physical time and eye strain. |
+| Contextual Awareness | None: Operates purely on mathematical probability. | High: Understands social dynamics and company structures. |
+
+If you are interested, we can look closer at either side. Would you like to explore how security teams use AI to catch software bugs before deployment, or do you want to see an example of a business logic flaw that trips up AI models?
+
