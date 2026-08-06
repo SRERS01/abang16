@@ -1,0 +1,53 @@
+If a PHP developer hardcodes a backtick character (`) directly into a URL within their code, it usually points to one of two critical mistakes: misunderstanding how PHP handles backticks or creating a highly specialized, vulnerable routing path.
+Here is exactly what happens when a developer embeds a backtick into a URL and how it opens the door to exploitation.
+------------------------------
+## Scenario 1: The Developer Mistook Backticks for Single Quotes (RCE)
+The most common mistake happens when a developer tries to construct a dynamic API query or system call inside their PHP code but uses backticks (`) instead of single quotes (') to wrap the URL string.
+In PHP, wrapping anything in backticks tells the server to immediately run that string as an operating system command (shell_exec). [1, 2] 
+
+* What the Developer Wrote:
+
+// CRITICAL MISTAKE: The developer thought they were making a web request
+$url = `https://example.com` . $_GET['id'];
+
+* Why it is instantly broken: PHP does not treat this as a URL string. It sees the backticks and immediately tries to run https://example.com... as a local command on the server's Linux/Windows terminal.
+* How it is exploited: Because the user input $_GET['id'] is inside that terminal execution string, an attacker can append shell operators directly to the end of the URL parameter.
+* Exploit URL: https://mysite.com
+   * What the Server Runs: https://example.com
+   * The Result: The terminal attempts to run the fake URL command, hits the semicolon ;, and executes whoami, giving the attacker Remote Code Execution (RCE). [3] 
+
+------------------------------
+## Scenario 2: The Backtick is Part of a Hardcoded System Call
+Sometimes a developer uses an external system tool (like curl or wget) inside backticks to fetch a webpage, and hardcodes the backtick right at the end of the command structure.
+
+* What the Developer Wrote:
+
+// DANGEROUS: Trying to fetch a URL using a terminal command
+$output = `curl "https://example.com['input']"`;
+
+* How it is exploited: Even though the developer wrapped the URL inside double quotes (") within the backticks, the user input is still active. An attacker can break out of the URL format.
+* Exploit URL: https://mysite.com";whoami;#
+   * What the Server Runs: curl "https://example.com";whoami;#"
+   * The Result: The double quote closes the curl URL parameter, the semicolon cuts the command, and whoami runs as a standalone malicious command. [4] 
+
+------------------------------
+## Scenario 3: The Backtick is Literally Inside a Legitimate Web URL
+If the developer is using a standard, secure PHP function to make a web request (like file_get_contents() or curl_exec()), but the target URL literally contains a backtick character.
+
+* What the Developer Wrote:
+
+// SAFE FROM RCE (but prone to bad routing/malfunctions)
+$response = file_get_contents("https://example.com`path/data");
+
+* What happens here: Because this is inside a standard PHP string (quotes), it will never trigger code execution on the server. Instead, the server simply sends a web request to ://example.com containing a literal backtick.
+* The Vulnerability Risk: This usually breaks the HTTP protocol. Most modern web servers will reject this request with a 400 Bad Request error because raw backticks are illegal characters in standard URLs unless they are properly encoded as %60.
+
+------------------------------
+## Summary Checklist
+
+* If the developer put the URL inside raw backticks (`url`), the website has an instant, critical RCE vulnerability.
+* If the developer put the URL inside quotes, but the URL string just happens to have a backtick character inside it, it is safe from RCE but will likely cause application errors.
+
+Are you reviewing a specific line of code where you spotted a backtick used near a URL variable? If you can share that line, I can tell you exactly which scenario it falls into!
+
+

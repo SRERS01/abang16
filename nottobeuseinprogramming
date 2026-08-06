@@ -1,0 +1,92 @@
+To keep a backend secure, there is one universal rule: never pass untrusted user input (from URLs, forms, or APIs) directly into functions that execute system commands, evaluate code, or manipulate file paths. [1, 2, 3, 4, 5] 
+Here is the complete breakdown of the most dangerous built-in functions across every major backend language, how they are exploited, and how to fix them. [6] 
+------------------------------
+## 1. PHP
+PHP has a large footprint of legacy functions that interact directly with the operating system and code execution engine. [7, 8] 
+
+* Code Evaluation Functions: eval(), assert()
+* How they work: They execute any text string passed to them as live PHP code.
+   * Exploitation: If an attacker passes payload input to a URL like ?code=phpinfo();, the server runs it instantly. [9, 10, 11, 12, 13] 
+* System Command Functions: system(), exec(), shell_exec(), passthru(), popen(), proc_open(), backticks (`)
+* How they work: They pass strings directly to the underlying server terminal (Linux/Windows).
+   * Exploitation: An attacker uses command separators like ;, &&, or | (e.g., ?host=8.8.8.8; whoami) to run arbitrary terminal commands. [14, 15, 16, 17, 18] 
+* File Inclusion / Manipulation: include, require, include_once, require_once, file_get_contents()
+* How they work: They open or execute files based on file paths.
+   * Exploitation: If input is not sanitized, attackers use directory traversal (../../etc/passwd) to read private configurations (LFI) or pull down external malicious scripts (RFI). [19, 20, 21, 22, 23] 
+
+------------------------------
+## 2. Python
+Python is clean, but its core optimization and operating system utilities can easily be weaponized if exposed. [24] 
+
+* Dynamic Execution: eval(), exec()
+* How they work: eval() evaluates expressions; exec() dynamically executes complex Python code blocks.
+   * Exploitation: An attacker can inject Python code into an input field (e.g., __import__('os').system('rm -rf /')) to wipe or hijack the server. [25, 26, 27, 28, 29] 
+* System Commands: os.system(), subprocess.Popen(shell=True), subprocess.check_output(shell=True)
+* How they work: They spawn a shell terminal to run system infrastructure utilities.
+   * Exploitation: Setting shell=True tells Python to invoke a terminal string parser. Attackers chain commands together exactly like in PHP command injection. [30, 31, 32, 33] 
+* Unsafe Serialization: pickle.loads()
+* How it works: Deserializes raw Python object streams.
+   * Exploitation: Python objects can contain a magic method called __reduce__. If a hacker sends a custom-crafted byte stream to a pickle.loads() endpoint, it executes code automatically during unpacking. [34, 35, 36, 37, 38] 
+
+------------------------------
+## 3. JavaScript / Node.js
+Node.js applications can easily be brought down or compromised because JavaScript handles asynchronous execution structures fluidly.
+
+* Dynamic Evaluation: eval(), setTimeout("string"), setInterval("string"), new Function()
+* How they work: Passing a string (instead of a function) to these components forces the engine to compile and run it on the fly.
+   * Exploitation: Attackers inject backend JavaScript payloads to read environmental variables (process.env) or crash the process. [39, 40, 41, 42, 43] 
+* System Processes: child_process.exec(), child_process.execSync()
+* How they work: They run terminal shell commands from within Node.js.
+   * Exploitation: Injecting shell metacharacters (like ;) breaks out of the intended command to download and execute ransomware or reverse shells. [44, 45, 46, 47] 
+* Object Modification: lodash.defaultsDeep() (Prototype Pollution)
+* How it works: Merges objects together.
+   * Exploitation: If the input allows attackers to inject the key __proto__, they can modify base object properties globally across the application, leading to RCE or application crashes. [48, 49, 50, 51, 52] 
+
+------------------------------
+## 4. Java
+Java vulnerabilities often surface from how complex data structures are transferred and rebuilt across applications.
+
+* Command Execution: Runtime.getRuntime().exec(), ProcessBuilder
+* How they work: They initiate system binaries at the operating system level.
+   * Exploitation: Unlike languages with shell parsers, Java doesn't use a shell by default, but developers often manually invoke /bin/sh -c with user input, reintroducing command injection vectors. [53, 54] 
+* Unsafe Deserialization: ObjectInputStream.readObject()
+* How it works: Reconstructs binary data packets back into active Java objects.
+   * Exploitation: Attackers look for specific libraries in the project (called "gadget chains") and craft an object payload that forces Java to call unsafe methods during the reconstruction process. [55, 56, 57, 58, 59] 
+* Expression Languages: OgnlContext, ExpressionFactory.createValueExpression()
+* How they work: Evaluates custom Java expressions (highly common in old Apache Struts frameworks).
+   * Exploitation: Injecting expression tags allows direct access to the Java runtime engine to trigger code execution. [60, 61, 62, 63] 
+
+------------------------------
+## 5. C# (.NET)
+Like Java, modern .NET core is very safe by default, but legacy wrappers or bad object parsing can expose deep security flaws. [64] 
+
+* Terminal Shells: Process.Start()
+* How it works: Launches external processes and terminal tasks.
+   * Exploitation: If a developer sets ProcessStartInfo.UseShellExecute = true and appends unsanitized input to the arguments list, attackers can exploit shell sequence chaining.
+* Unsafe Deserialization: BinaryFormatter.Deserialize(), TypeNameHandling.All (in older Json.NET configurations)
+* How they work: Rebuilds object state files.
+   * Exploitation: If configured to trust type names explicitly provided within incoming JSON payloads, an attacker can specify a malicious system object type that runs arbitrary commands when initialized. [65, 66, 67, 68, 69] 
+
+------------------------------
+## 6. Ruby
+Ruby on Rails is highly resilient, but the underlying core Ruby features can be dangerous if used manually outside the framework. [70] 
+
+* Dynamic Code: eval(), instance_eval(), class_eval()
+* How they work: Runs string arguments as Ruby statements.
+   * Exploitation: Malicious text parameter inputs run seamlessly inside the active application scope. [71] 
+* System Access: Kernel.system(), Kernel.exec(), Backticks (`), IO.popen()
+* How they work: Forwards tasks to the host terminal.
+   * Exploitation: Appending unescaped strings lets attackers append malicious console lines. [72, 73, 74] 
+
+------------------------------
+## The Universal Fix: How to write safe code instead
+
+| Vulnerable Pattern | Secure Alternative |
+|---|---|
+| Using eval() or code compilers | Never use them. Rely on standard lookup tables, conditionals (switch/if), or JSON object mappings instead. |
+| Running system("ping " + input) | Use native arrays or libraries instead: subprocess.run(["ping", "-c", "4", input]). The system treats the input purely as a static string argument, not a command. |
+| Concatenating paths: include(dir + input) | Use strict structural allowlists. Ensure the input matches an expected configuration index, or use filename sanitizers to strip paths (basename()). |
+
+Are you trying to secure a specific codebase, or are you currently studying for a security/penetration testing certification? Let me know so I can tailor the next details to your goal!
+
+

@@ -1,0 +1,58 @@
+If the backtick character is URL-encoded at the end of a URL containing user input, its behavior and how it is exploited depends entirely on whether it is interpreted as an OS Command Injection vector or as raw PHP evaluation code.
+When a backtick is URL-encoded, it turns into %60. Here is how an encoded backtick at the end of a URL is processed and exploited by attackers.
+------------------------------
+## Scenario 1: Breaking Out of Inline Commands (Nested Execution)
+In Linux/Unix shells, a pair of backticks executes the command inside them first, and then passes that output to the main command. If an attacker puts an encoded backtick at the end of the input, they are usually trying to close an open backtick that already exists inside the PHP code.
+
+* Vulnerable Backend Code:
+
+// The developer wrapped the input inside backticks internally
+$output = `ping -c 1 $_GET['host']`; 
+
+* The Exploit URL:
+https://example.com
+* How it works:
+1. The web server automatically decodes %60 back into a literal ` character before PHP processes it.
+   2. The resulting command sent to the terminal becomes: `ping -c 1 8.8.8.8;whoami``
+   3. The shell runs ping, hits the semicolon separator, executes whoami, and uses the trailing backtick to safely close the developer's opening backtick, preventing a syntax error that would crash the execution.
+
+------------------------------
+## Scenario 2: Appending a Complete Command String
+If the developer's backend code appends the user input directly into an open terminal function, an attacker can pass a complete command cleanly wrapped inside two encoded backticks.
+
+* Vulnerable Backend Code:
+
+// Code accepts input and attaches it blindly
+$cmd = "echo " . $_GET['message'];
+$output = shell_exec($cmd);
+
+[1] 
+* The Exploit URL:
+https://example.com
+* How it works:
+1. The URL translates to hello followed by `whoami`.
+   2. When the backend executes echo hello \whoami`, the Linux shell halts the echostatement, jumps inside the backticks to executewhoami`, and places the username directly into the string output. [2] 
+
+------------------------------
+## Scenario 3: Code Injection via eval() or Vulnerable Includes
+If the URL input is being fed into a PHP file include or an execution function like eval(), putting an encoded backtick at the end is used to trigger PHP's built-in Execution Operator.
+
+* Vulnerable Backend Code:
+
+// DANGEROUS: Executes the string directly as PHP code
+eval($_GET['expression']); 
+
+* The Exploit URL:
+https://example.com
+* How it works:
+In PHP, typing `id` is exactly equivalent to typing shell_exec('id'). By passing %60id%60 at the end of the URL, the engine executes the system id command and returns the server's user permissions.
+
+------------------------------
+## Why Attackers Use URL Encoding (%60)
+
+   1. Web Application Firewall (WAF) Bypass: Many basic security filters scan incoming URLs for raw symbols like `, ;, or &. Encoding the backtick as %60 hides the symbol from superficial detection strings.
+   2. Browser Compliance: Modern web browsers automatically clean up or encode spaces and special characters before sending them to a server. An attacker explicitly types %60 to guarantee the backtick character reaches the PHP application intact. [3, 4] 
+
+If you are investigating a specific log entry, what does the full URL look like, and what characters precede the %60 (such as a semicolon ; or a quote ")? Sharing that will pinpoint exactly what kind of shell breakout was attempted.
+
+

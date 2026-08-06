@@ -1,0 +1,46 @@
+In Python, incoming website data is handled differently than in PHP. Python does not have built-in "superglobals." Instead, Python uses a standardized web gateway interface (WSGI/ASGI) to pass data into a web framework (like Flask, Django, or FastAPI), or uses the core standard library for low-level handling. [1, 2, 3, 4] 
+Here is how you accept website input in Python, using both the standard library and standard frameworks:
+## 1. The Standard Library Way (No Frameworks)
+If you are writing a script using Python’s built-in CGI or HTTP server modules, you read input using these standard features:
+
+* sys.stdin: Reads raw POST request body data in standard Common Gateway Interface (CGI) scripts.
+* os.environ: A built-in dictionary containing server metadata, URL query parameters (QUERY_STRING), cookies (HTTP_COOKIE), and request methods (REQUEST_METHOD).
+* urllib.parse.parse_qs(): A built-in function used to parse raw query strings from os.environ into a readable dictionary.
+* http.server.BaseHTTPRequestHandler: Built-in class attributes like self.path (for URLs) and self.headers (for HTTP headers) capture website data in a pure Python server. [5, 6, 7, 8, 9] 
+
+------------------------------
+## 2. Flask Framework (The Most PHP-Like Syntax)
+Flask wraps incoming web data into a single global-like object called request.
+
+* request.args: Captures URL query parameters (equivalent to PHP's $_GET).
+* request.form: Captures standard HTML form data submitted via POST (equivalent to PHP's $_POST).
+* request.json: Automatically parses raw JSON data sent via JavaScript fetch or APIs (equivalent to parsing php://input).
+* request.files: Captures uploaded files (equivalent to PHP's $_FILES).
+* request.cookies: Reads tracking and session data sent by the browser (equivalent to PHP's $_COOKIE).
+* request.headers: Accesses HTTP request headers (equivalent to PHP's getallheaders()). [10, 11, 12, 13, 14] 
+
+------------------------------
+## 3. Django Framework
+Django passes a dedicated request object into your function view as an argument. [15] 
+
+* request.GET: A dictionary containing all given URL query parameters.
+* request.POST: A dictionary containing all submitted HTML form data.
+* request.body: Holds the raw, unparsed HTTP request body byte-string (for raw JSON/XML API data).
+* request.FILES: A dictionary containing all uploaded files.
+* request.COOKIES: A dictionary containing all incoming cookies.
+* request.headers: A dictionary containing all HTTP request headers. [16, 17, 18, 19, 20] 
+
+------------------------------
+## 4. FastAPI Framework
+FastAPI takes a modern approach by extracting website data using explicit, built-in function type hints. [21, 22] 
+
+* Query(): A built-in function that extracts inputs directly from the URL string.
+* Form(): A built-in class that forces data to be read from a submitted HTML form payload.
+* File() & UploadFile: Built-in types used to accept uploaded files.
+* Cookie(): Extracts specific browser cookies.
+* Header(): Extracts specific HTTP headers.
+* Pydantic Models: You define a standard Python class, and FastAPI automatically maps raw incoming JSON data to it. [23, 24] 
+
+Which framework are you planning to use for your project (Flask, Django, or FastAPI)? I can show you a code snippet on how to capture a specific form or JSON request using it.
+
+
