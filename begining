@@ -1,0 +1,30 @@
+Machine code (binary 1s and 0s) is the ultimate foundation that all software runs on, but C is the primary programming language used to build almost all modern languages. [1, 2, 3] 
+## The Foundation: Machine Code and Assembly
+
+* Hardware level: CPU chips only understand binary.
+* Assembly language: A human-readable version of binary.
+* The bridge: Every programming language must eventually convert into this code. [4, 5, 6, 7] 
+
+## The Mother of Modern Languages: C
+Developed in 1972, C is the root of modern software. It was used to build the operating systems (like Unix, Windows, and Linux) that other languages run on. [8, 9, 10, 11, 12] 
+Many popular languages are directly built using C or heavily inspired by its syntax: [13, 14] 
+
+* Python: The standard version (CPython) is written in C.
+* JavaScript: The engines that run JS (like Google's V8) are written in C++.
+* C++ and C#: Direct descendants designed to add new features to C.
+* Java: The original Java Virtual Machine (JVM) was written in C. [15, 16, 17, 18, 19] 
+
+## The Language Tree Structure
+
+[ Machine Code / Binary ]
+          │
+  [ Assembly Language ]
+          │
+        [ C ]
+   ───────┴───────
+  │       │       │
+[C++]  [Java]  [Python]
+
+Would you like to know how Python or JavaScript translates down into C, or are you curious about how to start learning C?
+
+
