@@ -1,0 +1,55 @@
+When a programming language has structural flaws in its compiler, interpreter, runtime engine, or standard libraries, it introduces security flaws that affect every single application built with it. [1, 2, 3] 
+Here is the complete classification of all vulnerabilities that can be caused directly by a programming language.
+------------------------------
+## 1. Memory Safety Vulnerabilities
+These occur primarily in compiled languages (like C, C++, and early implementations of new engines) where the language forces or allows the developer to manage hardware memory manually. [4, 5, 6, 7] 
+
+* Buffer Overflow / Underflow: The language engine fails to enforce strict boundaries on memory buffers. An attacker inputs data larger than the allocated space, overwriting neighboring CPU instruction pointers to hijack execution flow. [8, 9, 10, 11, 12] 
+* Use-After-Free (UAF): The language runtime allows a program to continue using a memory address pointer after the memory it points to has been cleared. Attackers manipulate the heap memory layout to execute arbitrary shellcode. [13, 14, 15, 16, 17] 
+* Integer Overflow/Underflow: The language's primitive numeric types silently wrap around if a mathematical operation exceeds maximum bit capacity (e.g., an 8-bit integer exceeding 255 loops back to 0). This completely breaks validation checks like if (user_input > max_allowed). [18, 19] 
+
+------------------------------
+## 2. Insecure-by-Design Serialization & Deserialization
+Many languages include built-in mechanisms to convert live runtime memory structures into flat data streams (for storage or transit) and reconstruct them later.
+
+* Unsafe Object Injection: The language engine's native deserializer automatically runs constructor or destructor methods on objects passed to it before verifying their data types. Attackers use this to instantiate system classes that trigger Remote Code Execution (RCE).
+* Examples: Python's pickle, Java's ObjectInputStream, PHP's unserialize(). [20, 21, 22, 23, 24] 
+
+------------------------------
+## 3. Parsing and Differential Flaws
+Before executing code, a language interpreter must break down strings into an Abstract Syntax Tree (AST). Inconsistencies in this parsing layer introduce fatal logical gaps. [25] 
+
+* Null Byte Injection (%00): Historically, high-level languages like PHP or Java handled strings dynamically, but passed them down to underlying C-based operating system libraries. An attacker could inject a null byte (filename.php%00.jpg). The high-level language validated it as a harmless .jpg, but the underlying C engine truncated the string at the null byte, processing it as an executable .php file. [26, 27, 28, 29, 30] 
+* Prototype Pollution / Object Alteration: In prototype-based languages (like JavaScript/Node.js), the runtime allows variables to traverse up to the root object configuration. Attackers inject specific attributes like __proto__ to alter the global behavior of the entire runtime application process. [31, 32, 33] 
+* URL/HTTP Parsing Differentials: If the language's built-in urlparse library handles special characters, multi-line headers, or invalid Unicode formats differently than a frontend reverse proxy (like Nginx), attackers can bypass Security Filters or trigger Request Smuggling.
+
+------------------------------
+## 4. Code and Context Confusion (Native Execution)
+Some languages natively build features that evaluate data strings dynamically as executable instructions to assist developers with flexibility. [34] 
+
+* Dynamic Evaluation Exploits: Built-in language features like eval(), exec(), or dynamic class loaders blur the line between static code instructions and raw user inputs. If user data touches these blocks, it defaults directly to arbitrary script execution.
+
+------------------------------
+## 5. Standard Library Vulnerabilities
+Even if the core syntax of a language is perfectly sound, its bundled core libraries (handling networks, cryptography, and files) can contain fundamental security flaws.
+
+* Insecure Cryptographic Defaults: The standard library explicitly provides or defaults to broken cryptographic algorithms (like native MD5 or SHA-1 for hashing passwords) instead of forcing secure, multi-round choices. [35, 36] 
+* Weak Pseudorandom Number Generation (PRNG): The language's native random() function relies on simple math formulas (like Linear Congruential Generators) that are statistically predictable. Attackers reverse-engineer the random number generator seed to predict secret password reset tokens or session keys. [37, 38] 
+* Path Traversal Invariants: The native file-system access layer resolves directory navigation strings (like ../../) implicitly without exposing an isolation flag, allowing custom inputs to escape application container roots out of the box.
+
+------------------------------
+## 6. Concurrency and Race Conditions
+When a language implements multi-threading or asynchronous processing, structural design flaws can compromise variable state security.
+
+* Time-of-Check to Time-of-Use (TOCTOU): The runtime language environment verifies a condition (like file permissions) in one processor clock cycle, but executes the corresponding action in a later cycle. Attackers exploit this brief microsecond window to swap the safe asset with a malicious file.
+* Thread-Safety Violations: Global shared memories or static variables across language execution contexts collide, leaking confidential session states belonging to User A into the browser window of User B. [39, 40, 41] 
+
+------------------------------
+## 7. Ecosystem & Supply Chain Weaknesses
+The architecture of a language's packaging ecosystem introduces critical deployment risks.
+
+* Dependency Confusion: The package registry default routing algorithm natively prioritizes public packages over internal corporate configurations, allowing attackers to hijack enterprise build servers by registering identical package names publicly.
+
+If you are auditing a specific target environment, we can build a custom Nuclei profiling template to scan for legacy language framework version flags. Would you like to set that up?
+
+

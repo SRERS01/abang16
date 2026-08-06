@@ -1,0 +1,51 @@
+To test if a brand-new programming language has security vulnerabilities, you must treat it like an untested binary application. Because it is new, it lacks a history of CVEs or known public exploits. You have to find the bugs yourself. [1] 
+Here is a step-by-step framework to audit and test a new programming language for security flaws on your Ubuntu machine.
+------------------------------
+## Step 1: Identify the "Host" Language
+New programming languages are rarely written completely from scratch in raw machine code. They are almost always built using an existing language.
+
+* Compiled Languages (e.g., Mojo, Zig): These compile down to machine code, often using framework backends like LLVM.
+* Interpreted / Transpiled Languages (e.g., TypeScript, various new script engines): These often compile directly into JavaScript, Python, or Go code before running. [2] 
+
+How to test: Look at the new language’s GitHub repository. If it is written in C/C++, it is highly prone to memory corruption (Buffer Overflows). If it is written in Rust or Go, it is natively safer against memory bugs, but still highly vulnerable to logical flaws (parsing errors). [3, 4, 5] 
+------------------------------
+## Step 2: Audit the Standard Library for Insecure Defaults
+The standard library contains the built-in tools developers use to handle files, networks, and inputs. Check the documentation or source code for how it handles:
+
+* File Paths (Path Traversal): Does the built-in file reader natively resolve dot-dot-slash (../../) patterns, or does it strictly validate paths?
+* Cryptographic Defaults: Check the native hashing functions. Does the language guide developers to use secure defaults (like Argon2id or bcrypt), or does it prominently feature broken or weak algorithms (like MD5 or SHA1)?
+* SSL/TLS Verification: Look at the built-in HTTP client network functions. Does it verify SSL certificates by default, or is there an easy configuration flag that turns verification off entirely, exposing developers to Man-in-the-Middle (MitM) attacks?
+
+------------------------------
+## Step 3: Test for Input and Context Confusion
+The classic root cause of injection bugs is a parser confusing "data" with "code." Test how the new language handles boundary strings.
+
+* String Formatting: If the language has a formatting feature (like Python's f-strings or C's printf), test what happens when you pass user input as the format string itself. If passing %s, %x, or {item.__init__} leaks memory addresses or internal application properties, you have found an injection flaw.
+* System Commands: Test the language's native function for running terminal commands. Does it force developers to pass arguments as a safe array (like ['ls', '-la']), or does it encourage passing a single concatenated string shell command (like ls -la + input), which directly leads to Command Injection? [6] 
+
+------------------------------
+## Step 4: Fuzz the Language Compiler/Interpreter
+Fuzzing is the absolute fastest way to break a new language. You feed the language's compiler or runtime millions of randomized, broken syntax variations to see if it crashes.
+
+   1. Install AFL++ (American Fuzzy Lop) on Ubuntu:
+   
+   sudo apt update && sudo apt install -y afl++
+   
+   2. Create a Directory of Code Samples: Create a folder named inputs/ and put a few small, perfectly valid scripts written in the new language inside it. [7] 
+   3. Run the Fuzzer: Point the fuzzer to the new language's binary executable, feeding it your input folder:
+   
+   afl-fuzz -i inputs/ -o outputs/ -- /path/to/new-language-compiler @@
+   
+   4. Analyze the Crashes: If the fuzzer reports a crash in the outputs/crashes/ folder, it means your malformed code caused a crash in the core engine. If the compiler is written in C/C++, this crash is very likely an exploitable Remote Code Execution (RCE) vector.
+
+------------------------------
+## Step 5: Test the Abstract Syntax Tree (AST) & Serialization
+If the new language includes a built-in method to save objects to disk or transmit them over networks (Serialization), it is highly likely to be broken.
+
+* Create an object, serialize it to text, and inspect the structure.
+* Manually modify the text to point to a different system class or native type (e.g., trying to force it to call a system execution object upon waking up).
+* Pass the modified string back to the engine's deserializer function. If it attempts to process or run methods on your modified input without strict type verification, you have uncovered an Unsafe Deserialization 0-day. [8] 
+
+To start testing, we can write a quick Python automation script that generates mutated code strings to feed into the new language's interpreter to monitor how it handles unexpected inputs. Would you like to build that tool?
+
+

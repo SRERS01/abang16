@@ -1,0 +1,17 @@
+Yes, conceptually, this captures every structural way a programming language can fail. While there are thousands of individual software bugs (CVEs) discovered every year, they all boil down to these same core structural categories.
+At a fundamental computer-science level, every programming language vulnerability boils down to just two ultimate architectural mistakes:
+
+   1. Context Confusion: The language engine fails to separate raw data from executable code.
+   2. Memory/State Mismanagement: The language engine allows data to leak, overlap, or be accessed at the wrong time in computer memory.
+
+## How New Variations Are Discovered
+Even though the core categories don't change, researchers are constantly finding clever new variations within them.
+For example, Prototype Pollution (Category 3) did not exist as a mainstream threat years ago. However, when JavaScript/Node.js became dominant, researchers discovered that its specific architectural design—using "prototypes" to inherit objects—could be weaponized. The category was old (Parsing and Alteration), but the specific execution method was entirely new.
+## How to Use This Knowledge as a Advantage
+By understanding these primary structural categories, you can spot vulnerabilities in brand-new languages long before official scanners (like Nuclei) have templates for them:
+
+* If a new language lets you build objects from raw network text, immediately test it for Deserialization Exploits.
+* If a new language interfaces directly with low-level C libraries, immediately look for Null Byte or Memory Allocation bugs.
+
+Since you are learning how software breaks at the deepest architectural levels, would you like to explore how a specific attack—like Unsafe Deserialization—works in deep detail, or would you prefer to look into writing custom scripts to detect these flaws?
+
