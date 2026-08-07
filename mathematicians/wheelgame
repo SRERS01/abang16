@@ -1,0 +1,45 @@
+In a spinning game—such as a digital roulette wheel, a slot machine reel, or a prize wheel—applying these concepts means looking at how the game determines where the wheel stops. [1] 
+To make a game fair and secure, developers use non-linear math to ensure the spins are unpredictable. If a developer makes a mistake and uses linear math, a player can use mathematical analysis to predict the exact winning slice of the wheel. [2] 
+Here is how both concepts apply step-by-step to a spinning game.
+------------------------------
+## The Linear Application (The Vulnerability)
+If a spinning game is poorly programmed, it uses a Linear Congruential Generator (LCG) to decide the stopping angle of the wheel. This creates a pattern that a computer program can exploit. [3] 
+## 1. Map the Wheel to Math
+The wheel is a circle, which consists of $360^\circ$ (or $2\pi$ radians). The software divides the wheel into discrete stopping positions or steps (for example, $m = 10,000$ tiny fractional increments around the circle). [4, 5] 
+## 2. The Linear Formula
+Every time a player clicks "Spin," the game calculates the next stopping position using a linear equation:
+$$X_{n+1} = (a \cdot X_n + c) \pmod m$$ 
+## 3. How to Predict It
+Because this formula is completely linear, a player does not need to look at the physical wheel. They only need to record where the wheel stops a few times in a row (converting the prize slices back into the raw steps $X_1, X_2, X_3$).
+By applying the Extended Euclidean Algorithm to calculate the modular inverse of the differences between spins, the player can instantly calculate the secret values of $a$ and $c$:
+$$a \equiv (X_3 - X_2) \cdot (X_2 - X_1)^{-1} \pmod m$$ 
+Once those numbers are found, the player knows the exact winning slice of the next spin before the wheel even starts turning.
+------------------------------
+## The Non-Linear Application (The Defense)
+To prevent players from predicting the game, modern developers use non-linear permutations to completely scramble the relationship between the math and the wheel.
+
+[Secure Seed] ──> [Non-Linear Mixing (ChaCha20)] ──> [Unpredictable Angle] ──> [Wheel Stops]
+
+## 1. Breaking the Linear Link
+Instead of using multiplication and addition (which are easy to reverse), the game engine uses a secure algorithm like ChaCha20. This algorithm relies on a design called ARX, which stands for:
+
+* Addition
+* Rotation
+* XOR (Exclusive OR)
+
+## 2. Why XOR and Rotation are Non-Linear
+In binary math, a standard addition carries numbers over to the next column ($1 + 1 = 10$). XOR operations do not carry numbers over ($1 \oplus 1 = 0$). [6, 7] 
+When you constantly alternate between normal addition, bitwise XOR, and bitwise rotation, you destroy all linear relationships. The math can no longer be written as a clean algebraic equation.
+## 3. The Avalanche Effect on the Wheel
+Because the math is strictly non-linear, it triggers the Avalanche Effect. If Spin #1 uses an internal state of 00000001 and stops at the $12^\circ$ mark, Spin #2 using an internal state of 00000002 (changing just one single bit) will not stop at $13^\circ$ or $14^\circ$. [8] 
+Instead, the non-linear math completely shuffles the output, sending the wheel to an entirely different quadrant—perhaps $287^\circ$.
+There is no mathematical trajectory or pattern that a player's computer can map, making the spinning game perfectly secure. [9, 10] 
+------------------------------
+If you are designing or analyzing a game, let me know if you would like to explore:
+
+* A basic code example showing how to properly map a secure random number to a $360^\circ$ wheel.
+* How to calculate the probability distribution of different prize slices on a wheel.
+* How PRNG biases can accidentally make certain sections of a wheel hit more often than others.
+
+
+

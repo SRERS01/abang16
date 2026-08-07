@@ -1,0 +1,69 @@
+Analyzing a spinning game blindly means you cannot see the source code, variables, or the server-side environment. You must treat the game as a mathematical "black box," injecting inputs (spins) and measuring outputs (the results/stopping positions).
+Here is the step-by-step mathematical framework to discover, map, and exploit developer errors entirely from the outside.
+------------------------------
+## Phase 1: Mathematical Data Collection (Reconnaissance)
+Before running any advanced math, you must collect a clean dataset. Visual slices (like "Red 14" or "Jackpot") are not enough; you must convert them into precise numerical data.
+
+   1. Video Capture / Frame-Rate Mapping: Record the wheel's final stopping position at high resolution.
+   2. Convert to Degrees: Map every result to a precise angle between $0^\circ$ and $359.9^\circ$.
+   3. Establish Timeline: Record the exact timestamp of when the spin button was pressed and when the server returned the result, down to the millisecond.
+   4. Build the Sequence: Create your master data matrix:
+   $$\mathbf{D} = \begin{bmatrix} n_1 & \theta_1 & t_1 \\ n_2 & \theta_2 & t_2 \\ n_3 & \theta_3 & t_3 \end{bmatrix}$$ 
+   (Where $n$ is spin number, $\theta$ is stopping angle, and $t$ is the millisecond timestamp).
+
+------------------------------
+## Phase 2: Testing for Linear Flaws (The LCG Blind Test)
+If the developer used a weak linear formula ($X_{n+1} = aX_n + c \pmod m$), the physical distances between consecutive spins will form a highly structured multi-dimensional pattern, even if you do not know $a$, $c$, or $m$.
+## Step 1: Calculate Delta Vectors
+Calculate the angular difference between consecutive spins:
+$$\Delta \theta_n = (\theta_{n+1} - \theta_n) \pmod{360}$$ 
+## Step 2: Spectral Test Plotting
+Plot your data in multi-dimensional space. Take 3 consecutive differences and plot them as a coordinate point $(x, y, z)$ on a 3D graph:
+$$\text{Point}_1 = (\Delta \theta_1, \Delta \theta_2, \Delta \theta_3)$$ 
+$$\text{Point}_2 = (\Delta \theta_2, \Delta \theta_3, \Delta \theta_4)$$ 
+
+* The Blind Reveal: If the generator is truly non-linear (secure), the points will look like a completely random cloud of dust. If the developer used a flawed linear generator, the points will instantly align into perfectly flat, parallel geometric hyperplanes (lines or sheets). This is a mathematical certainty known as Marsaglia's Theorem.
+
+## Step 3: Lattice Solving
+Once those lines appear on your plot, you have proven a linear vulnerability blindly. You can pass your angular data into an LLL (Lenstra-Lenstra-Lovász) algorithm script, which will automatically solve for the spacing of those hyperplanes, giving you the exact underlying multiplier ($a$) and modulus ($m$).
+------------------------------
+## Phase 3: Testing for Time Flaws (The PRNG Re-Seed Test)
+If the wheel passes the linear test, the developer might still be using a secure algorithm (like ChaCha20) but re-seeding it with a predictable value like system time every single spin.
+## Step 1: The Idle Test
+Let the game sit completely idle for exactly 10 minutes, then spin. Record the result. Do this multiple times.
+
+* The Math: If the developer re-seeds with time, the vast gap in $t$ will cause a massive jump in the internal state.
+
+## Step 2: The High-Speed Sequential Test
+Trigger 10 spins as fast as the user interface allows.
+
+* The Reveal: Look at the millisecond differences ($\Delta t = t_{n+1} - t_n$). If you find that spins executed within the same millisecond or exactly 1000ms apart yield identical or mathematically mirrored outcomes, the seed function is directly tied to the clock.
+
+## Step 3: Polynomial Interpolation
+If the output angle $\theta$ changes predictably relative to the execution time $t$, you can apply Lagrange Polynomial Interpolation to map the time-to-angle curve:
+$$P(t) = \sum_{i=0}^{k} \theta_i \prod_{j \neq i} \frac{t - t_j}{t_i - t_j}$$ 
+If $P(t)$ reliably yields a low-degree polynomial, you can blindly predict the winning angle simply by sending your spin request at a perfectly timed millisecond.
+------------------------------
+## Phase 4: Testing for Modulo Bias (The Statistical Black-Box Test)
+If the game is completely un-predictable spin-to-spin, you must check for structural imbalances caused by bad range-mapping math.
+## Step 1: Large Sample Frequency Count
+Collect a massive sample size (e.g., 10,000 blind spins). Count how many times the wheel lands on each individual slice.
+## Step 2: Run a Chi-Square ($\chi^2$) Goodness-of-Fit Test
+Set up your mathematical hypothesis test:
+
+* Null Hypothesis ($H_0$): Every slice has an identical probability of hitting.
+* Formula:
+$$\chi^2 = \sum_{i=1}^{k} \frac{(O_i - E_i)^2}{E_i}$$ 
+(Where $O_i$ is your observed count for a slice, and $E_i$ is the expected count, which is $\frac{\text{Total Spins}}{\text{Total Slices}}$).
+
+## Step 3: Analyze the Critical Value
+Look up your calculated $\chi^2$ value on a standard distribution chart. If your value exceeds the critical threshold (typically at a $p$-value $< 0.05$), the game is mathematically proven to be biased.
+Because you are playing blindly, you do not need to know why it is biased. You simply shift all your actions to consistently back the specific physical slices that show a statistically significant higher win frequency, completely reversing the game's edge in your mathematical favor.
+------------------------------
+To help apply this black-box analysis practically, let me know:
+
+* Approximately how many spins you are able to log for data collection.
+* The total number of winning segments (slices) on the game wheel.
+* Whether the wheel spins continuously (physics-based) or simply snaps to a static position instantly.
+
+
