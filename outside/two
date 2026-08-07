@@ -1,0 +1,70 @@
+Here is the complete blueprint of vulnerabilities that exist entirely outside a user account (Pre-Authentication) on web applications, along with exactly how security researchers manually test for them using tools like Burp Suite or a terminal.
+------------------------------
+## 1. Insecure Payment Gateways & Callback Bypasses
+
+* What it is: Third-party payment processors (crypto, credit cards, local wallets) notify the website backend via a public webhook when a transaction succeeds. If the backend fails to verify who sent the message, anyone can spoof it.
+* How it is tested:
+1. Intercept the network traffic when initiating a test deposit.
+   2. Locate the backend notification URL (look for endpoints like /payments/callback, /api/v1/webhook, or /ipn).
+   3. Send that endpoint to Burp Suite Repeater.
+   4. Strip away all session cookies to ensure it works unauthenticated.
+   5. Change the transaction parameters (e.g., set status=success, amount=10000, transaction_id=12345) and send the request. If the server responds with an HTTP 200 OK and accepts the fake transaction data, it is vulnerable.
+
+## 2. Server-Side Request Forgery (SSRF)
+
+* What it is: Public features that pull data from an external URL (such as adding a profile picture via a link, parsing an external sports feed, or a public URL previewer) can be tricked into fetching internal network data.
+* How it is tested:
+1. Find any public-facing input field or API parameter that accepts a URL string.
+   2. Instead of a normal web URL, input an internal loopback address or cloud metadata endpoint:
+   * http://127.0.0.1:80 (Internal server)
+      * http://169.254.169 (AWS Cloud Metadata)
+   3. Analyze the server response. If the server leaks internal server headers, configuration scripts, or cloud access keys, SSRF is confirmed.
+
+## 3. Exposed Cloud Infrastructure & Open Ports
+
+* What it is: DevOps engineers accidentally leave backend infrastructure ports (like databases, code repositories, or administration panels) wide open to the public internet without a password interface.
+* How it is tested:
+1. Use network scanning tools like nmap or public asset search engines like Shodan or Censys against the platform's IP ranges.
+   2. Look for open infrastructure ports:
+   * Port 9200 (ElasticSearch)
+      * Port 8123 (ClickHouse)
+      * Port 27017 (MongoDB)
+      * Port 6379 (Redis cache)
+   3. Attempt a direct terminal connection without credentials (e.g., curl http://[IP_Address]:9200/_cat/indices). If it returns raw database statistics or table logs, the system is fully exposed.
+
+## 4. Password Reset & Pre-Auth Logic Flaws
+
+* What it is: Vulnerabilities within the account recovery screen that allow an attacker to bypass authentication, brute-force security codes, or hijack tokens.
+* How it is tested:
+1. Go to the public "Forgot Password" page and request a reset link for a target email.
+   2. Intercept the network request handling the submission.
+   3. Test for Parameter Pollution: Add a second email variable to the request (email=victim@site.com&email=attacker@site.com) to see if the reset token gets forwarded to the attacker.
+   4. Test for Host Header Injection: Modify the Host: header in the HTTP request to evil.com. If the server generates the reset email using the modified header, the victim will receive a link pointing to the attacker's server, leaking their token when clicked.
+
+## 5. API Directory Traversals & Hidden Endpoints
+
+* What it is: Unlisted or legacy backend API endpoints that are fully active but not linked anywhere on the visible frontend website interface.
+* How it is tested:
+1. Run content discovery fuzzers (like Gobuster, FFuF, or Dirsearch) against the root domain.
+   2. Use specialized wordlists targeting backend APIs (e.g., raft-medium-words.txt or api-endpoints.txt).
+   3. Filter out 404 Not Found responses to pinpoint active paths.
+   4. If you discover hidden paths (like /api/v1/debug, /backup/db.sql, or /config.json) returning 200 OK data to an unauthenticated visitor, you have found a data exposure flaw.
+
+## 6. Registration Race Conditions
+
+* What it is: A concurrency flaw where a web application processes multiple identical signup requests at the exact same millisecond before it has time to write the changes to its master database.
+* How it is tested:
+1. Intercept a signup request containing a registration voucher or promo code.
+   2. Send the exact request to Burp Suite Intruder.
+   3. Configure a multi-threaded attack payload using a "Single Packet Attack" strategy or Turbo Intruder script.
+   4. Fire 50 identical registration requests simultaneously.
+   5. Check if the backend fails to lock the promo validation fast enough, resulting in multiple accounts sharing the same unique asset code or duplicating starting welcome balances.
+
+------------------------------
+If you want to practice checking for these safely, tell me:
+
+* Would you like to see the exact step-by-step layout of an HTTP request used to test for a payment callback bypass?
+* Do you want to learn how to read an Nmap scan result to identify an open database port?
+* Should we look at a mock Turbo Intruder script used to test a pre-auth race condition?
+
+

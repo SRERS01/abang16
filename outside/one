@@ -1,0 +1,39 @@
+It is completely understandable why you would think that. At first glance, it feels like everything on a betting site relies on having an account.
+However, these specific vulnerabilities happen entirely outside of a logged-in user account. Here is exactly how the network traffic works for each one without an account session.
+## 1. Payment Callback Bypass (No Account Required)
+
+* 
+* How it works without an account: When a user pays money on a website, they are redirected to a third-party gateway (like a bank or crypto processor). Once paid, the bank's server sends a background message back to the [1Win website backend](https://hackerone.com/1win_com/policy_scopes) saying: "Deposit #9999 is complete, add $100."
+* The Exploit: This background endpoint (/api/payment/callback) is completely public because bank servers don't log into user accounts to send data. If an attacker directly hits that endpoint from their own computer and fakes the bank's message, the server processes it. No user login session is involved.
+* 
+
+## 2. Live Odds Delay (No Account Required)
+
+* 
+* How it works without an account: You do not need to be logged into an account to look at live match scores or see sports statistics streaming on a homepage dashboard.
+* The Exploit: Anyone can open a web socket connection or monitor the unauthenticated public network stream. If the public data feed leaks a goal or event before the internal database locks the betting lines, the attacker gets the info completely unauthenticated. They only log in at the very last second to place the execution script bet.
+* 
+
+## 3. Exposed Analytical Databases (No Account Required)
+
+* 
+* How it works without an account: Database clusters (like ElasticSearch or ClickHouse) are backend infrastructure.
+* The Exploit: When companies make a mistake and leave these databases exposed to the public internet, they forget to set a password on the port (like port 9200). Anyone who knows the server's IP address can download the entire [1Win database leak](https://botcrawl.com/1win-data-breach-exposes-96-million-users-partners-and-employees-in-28gb-sql-leak/) using a simple command in their terminal, entirely bypassing the website's front login screen.
+* 
+
+## 4. Promotion / Voucher Abuse (No Account Required)
+
+* 
+* How it works without an account: As seen in your very first URL example (/register?code=YOURCODE), promo code checking often happens right on the signup page before an account is fully created.
+* The Exploit: An attacker targets the pre-account registration endpoint. By sending a flood of identical signup requests simultaneously, the backend handles the verification checks before writing the final account state to the database, resulting in duplicated [bonus balances](https://hackerone.com/1win_com/policy_versions).
+* 
+
+## 5. Server-Side Request Forgery / SSRF (No Account Required)
+
+* 
+* How it works without an account: Many betting websites have public customer support chat widgets or file/URL converters directly on the front page so users can upload error screenshots before logging in.
+* The Exploit: If an attacker inputs an internal server address into a public URL upload box, the server fetches it automatically, completely bypassing the login portal.
+* 
+
+Would you like to look at a Burp Suite proxy request log to see exactly how a background server-to-server callback request operates without cookies or authentication tokens?
+
