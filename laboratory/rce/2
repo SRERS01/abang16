@@ -1,0 +1,49 @@
+# Remote Code Execution (RCE) via [Name of Vulnerable Component/Endpoint]
+
+## Summary
+A Remote Code Execution (RCE) vulnerability was identified in the `[Insert Target Endpoint, e.g., /api/v1/profile/upload]` endpoint. Due to insufficient input sanitization in the `[Insert Parameter, e.g., file_name]` parameter, an attacker can execute arbitrary system commands on the host server. This allows for full system compromise, matching 1win's **Critical** severity tier ($3,000 bounty).
+
+## Product / Asset Affected
+*   **Target URL**: `https://[subdomain]://[path]`
+*   **Vulnerable Parameter**: `[parameter_name]`
+*   **HTTP Method**: `POST` / `GET`
+
+## Requirements / Pre-requisites
+*   An active researcher test account (registered using the HackerOne email alias as required by program rules).
+*   [Mention if authentication is required or if it is unauthenticated].
+
+## Step-by-Step Reproduction Instructions
+1. Log in to your researcher account on the designated 1win asset.
+2. Navigate to the `[Vulnerable Section]` page.
+3. Intercept the traffic using a proxy tool (e.g., Burp Suite) and trigger the action that sends a request to `[Endpoint]`.
+4. Modify the request payload to inject the following system command command injection/deserialization string:
+   ```http
+   POST /api/v1/profile/upload HTTP/1.1
+   Host: target.1win.com
+   ...
+   
+   {"file_name": "test.jpg; whoami;"}
+   ```
+5. Observe the response containing the output of the executed command (e.g., `www-data` or `root`).
+
+## Proof of Concept (PoC)
+```bash
+# Example curl command reproducing the issue
+curl -X POST "https://target://api/v1/profile/upload" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer [TOKEN]" \
+  -d '{"file_name": "test.jpg; id;"}'
+```
+
+*Note: Please find attached `screenshot_response.png` showing the `id` command output returned directly in the application backend response.*
+
+## Impact
+An attacker exploiting this vulnerability can execute arbitrary shell commands on the server. This can lead to:
+*   Complete compromise of the underlying infrastructure asset.
+*   Unauthorized access to the application database or environment variables.
+*   Potential lateral movement within the network if network-level segmentation is weak.
+
+## Suggested Remediation
+*   Implement strict input validation using a whitelist of allowed characters (alphanumeric only).
+*   Avoid passing user-controlled data directly into system shells or execution functions (like `exec()`, `system()`, or `eval()`).
+*   Ensure the application process runs with the lowest possible OS privileges (least privilege principle).

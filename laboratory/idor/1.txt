@@ -1,0 +1,65 @@
+This file isolates endpoints that interact with transactional histories, unique user authentication flows, and account configuration tables. An Insecure Direct Object Reference (IDOR) or Broken Object Level Authentication (BOLA) flaw occurs if the application exposes a direct reference to an internal database identifier without validating that the requesting user owns that asset.
+Under 1win's program policies, an IDOR exposing critical or highly confidential data falls into the High Severity tier and awards $1,000, bulk sensitive data awards $750, and non-covered sensitive client data awards $400.
+------------------------------
+## High-Surface Parameter Mapping from your List
+When scanning for IDOR vulnerabilities, ignore generic static resource keys (like game or category IDs) and focus strictly on paths handling individual user states or financial properties.
+## 1. Account Identity & Activity History Endpoints
+
+* https://1win.com/betting/bets-history?cda_id=3bba98a3de65d...
+* Why it stands out: Transactional tracking endpoints depend on contextual query variables like cda_id. If this value corresponds to an incremental or predictable tracking parameter, changing it could reveal another account's wagering histories, balances, or underlying user information.
+
+## 2. Federated OAuth State References
+
+* https://1win.com...
+* Why it stands out: The state parameter inside the URL-encoded JSON framework ({"redirect":"/","state":"ba31ce"...}) maps authentication return loops. Tampering with identifier strings inside the authentication parameter blocks could allow a researcher to swap validation responses between cross-account contexts.
+
+## 3. Administrative Control Views
+
+* https://1win.com/panel?cda_id=e9bf06f5d0fef6d1a87c5322f8
+* Why it stands out: Routes containing directory names like /panel imply dashboard controls. If the authorization checks rely completely on the validity of the trailing string sequence without validating cookie session mappings concurrently, boundary cross-over becomes possible.
+
+------------------------------
+## Step-by-Step Safe Verification Framework
+To test these endpoints safely, you must register two separate researcher test accounts using your HackerOne email alias. Do not attempt to query or guess the parameters of arbitrary active production players.
+## Step 1: Baseline Session Profiling
+Log into both accounts in separate browser sessions (e.g., standard browser window for Account A, incognito window for Account B) to map your baseline resource identifiers.
+
+* Action: Navigate to /betting/bets-history on both accounts. Capture the requests via your proxy suite.
+* Safe Observation: Document the target keys for both entities.
+* Account A Identifier: cda_id=AAAAA
+   * Account B Identifier: cda_id=BBBBB
+
+## Step 2: Parameter Swap Check
+Test if Account A can view or manipulate data belonging to Account B using its valid authorization tokens.
+
+* Action: Take a valid request originating from Account A's browser session. Modify the target parameter to match Account B's resource identifier (cda_id=BBBBB). Do not alter Account A's authorization cookies or bearer tokens. Send the request.
+* Safe Observation:
+* Secure Result: The server rejects the request with an HTTP 401 Unauthorized or HTTP 403 Forbidden response code, proving robust object-level access controls.
+   * Vulnerable Result: The server returns an HTTP 200 OK response containing Account B's unique account data or history profile.
+
+------------------------------
+## HackerOne Markdown Template for IDOR Submissions
+If your two-account manual verification framework successfully exposes cross-account visibility, document the submission using this format:
+
+# Insecure Direct Object Reference (IDOR) on Bets History Endpoint via [Parameter Name]
+## SummaryAn Insecure Direct Object Reference (IDOR / BOLA) vulnerability was identified within the `[Insert Parameter, e.g., cda_id]` parameter of the `[Insert Path, e.g., /betting/bets-history]` endpoint. The server application fails to validate whether the resource identifier provided in the query string matches the identity of the authenticated session token, permitting horizontal cross-account data visibility.
+## Target Asset*   **Vulnerable Endpoint**: `https://1win.com/[Insert-Vulnerable-Path]`
+*   **Affected Parameter**: `[Insert-Parameter-Name]`*   **Severity Tier**: High (\$1,000 / \$750 Tier depending on data volume)
+## Pre-requisites*   Two distinct researcher accounts registered using official program email aliases.
+    *   Account A (Attacker context)
+    *   Account B (Victim context)
+## Step-by-Step Reproduction Instructions1. Authenticate to the application as Account B and capture the unique resource tracking value: `[Account B ID String]`.2. Terminate or switch contexts to Account A's authenticated session state.3. Issue a request to the targeted endpoint using Account A's valid authorization headers, but swap the target query parameter to match Account B's identifier:
+   `https://1win.com/[path]?[parameter]=[Account B ID String]`4. Send the request ensuring tool rates remain under the 5 requests-per-second boundary.5. Observe that the backend server allows Account A to access Account B's history details.
+## Proof of Concept (PoC)```http
+GET /betting/bets-history?cda_id=[ACCOUNT_B_IDENTIFIER] HTTP/1.1
+Host: 1win.com
+Authorization: Bearer [ACCOUNT_A_VALID_TOKEN]
+Connection: close
+```
+*Note: The response successfully returned transaction elements linking back exclusively to Account B, confirming a broken object authorization state.*
+## ImpactAn authenticated actor can systematically access the private profile histories or sensitive configuration logs of other users by altering parameter references. Depending on the exposed data properties, this can lead to an infringement of player privacy or account landscape mapping.
+## Suggested Remediation*   **Session-Based Authorization**: Implement strict server-side validation checks that compare the requested resource ID directly against the user context decoded from the active authorization token or session cookie.*   **Indirect Reference Maps**: Use unpredictable, non-enumerable cryptographic hashes or randomized UUID structures for resource identification, ensuring that authorization state validation occurs continuously at the api layer before any database fetch happens.
+
+------------------------------
+If you are performing cross-account checks on parameters like cda_id or state, let me know what HTTP response status codes or error blocks return when Account A requests Account B's resources. I can assist you with analyzing the access control architecture safely.
+

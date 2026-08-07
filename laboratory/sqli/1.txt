@@ -1,0 +1,67 @@
+This output identifies parameters interacting directly with database querying systems, filtering blocks, or content engines.
+Under 1win's program rules, a verified SQL Injection (SQLi) or equivalent backend data manipulation vulnerability falls into the Critical Severity tier and qualifies for a $1,500 bounty.
+------------------------------
+## High-Surface Parameter Mapping from your List
+When scanning for SQLi, endpoints containing parameters that perform lookup, identification, or search indexing actions are the highest priority.
+## 1. Direct Search and Filter Parameters
+
+* https://1win.com/casino?search=
+* https://1win.com/fr-CI/casino?search=
+* Why they stand out: Search bars are the most common entry point for dynamic queries (e.g., SELECT * FROM games WHERE name LIKE '%[INPUT]%'). Unsanitized inputs here can break the query syntax.
+
+## 2. Unique Resource Identifiers
+
+* https://1win.com/api/web/v1/sdui/templates?country=DE&subdivision=HE&id=25b5200e1e...
+* https://1win.com/api/web/v1/sdui/templates/by-types?id=325d542673a1ee...
+* https://1win.com/casino/list?castId=cb693cd1-e904-4fb7-9460-629fa02dde38
+* https://1win.com/?castId=cf6d8321-d3f5-4e7e-82b9-eaa5ceaeca8a
+* Why they stand out: Parameters like id and castId fetch explicit data objects from a database. Even though these values look like static hashes or UUIDs, the backend handles them as conditional lookup criteria.
+
+## 3. Structured Category/Locale Parameters
+
+* .../web-v2-banners?localeId=7&category=main&tzOffset=0&country=US...
+* .../bff-v0-categories?lang=en&localeId=7&withVip=false...
+* Why they stand out: Variables like category=main or numeric inputs like localeId=7 often concatenate directly into backend sorting and selection strings.
+
+------------------------------
+## Step-by-Step Safe Verification Framework
+To test these parameters without extracting real user data, locking tables, or exceeding the program's 5 requests per second throttle, utilize structural and time-differential verification.
+## Step 1: Logical Inversion Testing (Boolean Checks)
+Verify if changing the logic of the string alters the application response without throwing an explicit error.
+
+* Action: Supply a valid search or ID, then append a true statement, followed by a false statement.
+* True Test: ?search=aviator' AND '1'='1 (or ?localeId=7 AND 1=1)
+   * False Test: ?search=aviator' AND '1'='2 (or ?localeId=7 AND 1=2)
+* Safe Observation: If the "True Test" returns normal content (like the game list) but the "False Test" completely empties the results or displays a "No assets found" message, the parameter is feeding directly into a logical interpretation engine.
+
+## Step 2: Time-Differential Delays (Inference Checks)
+If the endpoint is an API that doesn't return visual errors (Blind SQLi), check if the database engine pauses when executing a delay function.
+
+* Action: Inject a generic database sleep payload, adjusting the syntax depending on the inferred technology backend (e.g., PostgreSQL, MySQL).
+* Example payload format: ?id=325d5426...'+(select*from(select(sleep(5)))a)+'
+* Safe Observation: Monitor your proxy network tab. If the server response consistently delays by exactly 5 seconds, the database is executing your input.
+
+------------------------------
+## HackerOne Markdown Template for SQLi Submissions
+If your manual, low-rate checks confirm logical or time-based query manipulation, document the flaw for the 1win triage team using this format:
+
+# SQL Injection (SQLi) via [Parameter Name] on [Endpoint]
+## SummaryA SQL Injection vulnerability was identified within the `[Insert Parameter, e.g., castId]` parameter of the `[Insert Endpoint, e.g., /casino/list]` path. Due to missing parameterization or input filtering on the backend database layer, an attacker can append conditional logic statements. This allows for arbitrary database structure inference, meeting 1win's **Critical** severity standard ($1,500 bounty).
+## Vulnerable Asset*   **Target URL**: `https://1win.com/[Insert-Path]`
+*   **Affected Parameter**: `[Insert-Parameter-Name]`
+*   **HTTP Method**: `GET` / `POST`
+## Pre-requisites*   No authenticated session required / Tested via a valid researcher account.*   Testing conducted strictly under the 5 requests-per-second program boundary.
+## Step-by-Step Reproduction Instructions1. Navigate to the targeted data endpoint: `https://1win.com/[path]?[parameter]=[valid_value]`2. Intercept the request using an interception proxy suite.
+3. Append a non-destructive time delay payload into the parameter string: `[Your Safe Sleep Payload]`4. Observe that the application latency increases exactly by the number of seconds defined in the payload, confirming execution.
+## Proof of Concept (PoC)```http
+GET /[path]?[parameter]=[Safe-Delay-Payload] HTTP/1.1
+Host: 1win.com
+Connection: close
+```
+*Note: The baseline response latency for this endpoint is ~150ms. Injecting the safe time-delay statement caused a distinct response delay of 5150ms, proving backend query compilation.*
+## ImpactAn unauthorized actor exploiting this entry point can interact directly with the backend database infrastructure. This creates a risk of sensitive data exposure, schema enumeration, or vertical privilege escalation within the web application framework.
+## Suggested Remediation*   **Parameterized Queries**: Implement strictly bound parameterized queries or prepared statements across all API endpoint lookup scripts. This ensures the database engine treats user input exclusively as a literal value rather than executable code.*   **Input Whitelisting**: Ensure string identifiers like IDs or hashes match strict format constraints (e.g., validating that UUID parameters contain only alphanumeric blocks and hyphens) before query parsing occurs.
+
+------------------------------
+If you are running baseline checks against parameters like search or castId, let me know what specific HTTP response codes (such as 200, 500, or a database driver error) appear when you input structural characters like ' or ". I can help you analyze the response behaviors safely.
+

@@ -1,0 +1,50 @@
+To illustrate a Remote Code Execution (RCE) vulnerability and document it professionally for 1win's HackerOne program, you need to follow a structured methodology. A successful critical-severity report must be clear, actionable, and strictly adhere to the program's rules.
+Here is the step-by-step process from discovery to writing the Markdown report.
+------------------------------
+## Phase 1: Visual and Technical Illustration (The PoC)
+When demonstrating an RCE, your primary goal is to prove execution safely without causing system damage or service disruption.
+
+* Determine Impact Safely: Run benign commands like whoami, id, hostname, or cat /etc/hostname. Do not download external payloads, delete system files, or browse sensitive directories.
+* Capture Evidence: Take high-resolution screenshots of the request and response (e.g., using Burp Suite Repeater) showing the injected payload and the system response.
+* Video Recording (Optional but Recommended): Record a short, unedited video showing the target URL, the injection process, and the command execution.
+
+------------------------------
+## Phase 2: Writing the Markdown Report
+A professional report ensures the triage team handles your submission efficiently. Below is a structured Markdown template tailored to 1win's requirements.
+
+# Remote Code Execution (RCE) via [Name of Vulnerable Component/Endpoint]
+## SummaryA Remote Code Execution (RCE) vulnerability was identified in the `[Insert Target Endpoint, e.g., /api/v1/profile/upload]` endpoint. Due to insufficient input sanitization in the `[Insert Parameter, e.g., file_name]` parameter, an attacker can execute arbitrary system commands on the host server. This allows for full system compromise, matching 1win's **Critical** severity tier ($3,000 bounty).
+## Product / Asset Affected*   **Target URL**: `https://[subdomain]://[path]`
+*   **Vulnerable Parameter**: `[parameter_name]`
+*   **HTTP Method**: `POST` / `GET`
+## Requirements / Pre-requisites*   An active researcher test account (registered using the HackerOne email alias as required by program rules).
+*   [Mention if authentication is required or if it is unauthenticated].
+## Step-by-Step Reproduction Instructions1. Log in to your researcher account on the designated 1win asset.
+2. Navigate to the `[Vulnerable Section]` page.
+3. Intercept the traffic using a proxy tool (e.g., Burp Suite) and trigger the action that sends a request to `[Endpoint]`.4. Modify the request payload to inject the following system command command injection/deserialization string:
+   ```http
+   POST /api/v1/profile/upload HTTP/1.1
+   Host: target.1win.com
+   ...
+   
+   {"file_name": "test.jpg; whoami;"}
+   ```
+5. Observe the response containing the output of the executed command (e.g., `www-data` or `root`).
+## Proof of Concept (PoC)```bash
+# Example curl command reproducing the issue
+curl -X POST "https://target://api/v1/profile/upload" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer [TOKEN]" \
+  -d '{"file_name": "test.jpg; id;"}'
+```
+
+*Note: Please find attached `screenshot_response.png` showing the `id` command output returned directly in the application backend response.*
+## ImpactAn attacker exploiting this vulnerability can execute arbitrary shell commands on the server. This can lead to:*   Complete compromise of the underlying infrastructure asset.*   Unauthorized access to the application database or environment variables.*   Potential lateral movement within the network if network-level segmentation is weak.
+## Suggested Remediation*   Implement strict input validation using a whitelist of allowed characters (alphanumeric only).
+*   Avoid passing user-controlled data directly into system shells or execution functions (like `exec()`, `system()`, or `eval()`).*   Ensure the application process runs with the lowest possible OS privileges (least privilege principle).
+
+------------------------------
+## Important Reminder for 1win Submission
+Because 1win enforces strict testing standards, ensure that your validation process remained within the automated scanning limits of 5 requests per second if automated tools were used to find the entry point. Additionally, verify that no third-party user data or live administrative configurations were accessed during your testing.
+If you have a specific exploitation scenario in mind, I can help you craft the exact payload structure or refine the impact explanation for your draft. How would you like to proceed?
+

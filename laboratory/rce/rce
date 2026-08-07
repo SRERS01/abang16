@@ -1,0 +1,29 @@
+# [Vulnerability Type] via Unsanitized Parameter in [Endpoint Name]
+
+## Summary
+An input validation vulnerability exists within the `[Parameter Name]` parameter at `[Endpoint URL]`. The backend processes incoming strings without strict alphanumeric restrictions, allowing for atypical data control over the `[Component, e.g., JSON parser / Database engine]`.
+
+## Asset Details
+*   **Target URI**: `https://1win.com/[vulnerable-path]`
+*   **Affected Parameter**: `[e.g., cda_arg / preset]`
+*   **Payload Context**: `[Safe proof string used]`
+
+## Steps to Reproduce
+1. Navigate to the asset endpoint using a proxy suite: `https://1win.com/[path]?[parameter]=[safe-test]`
+2. Alter the parameter to include the non-destructive verification sequence: `[Your Safe Payload]`
+3. Send the request ensuring tool traffic remains under the **5 requests per second** limit.
+4. Observe the response behavior indicating unvalidated execution.
+
+## Proof of Concept
+```http
+GET /api/v1/sample-path?parameter=safe_reproduction_string HTTP/1.1
+Host: 1win.com
+Connection: close
+```
+
+## Impact
+Unsanitized data parsing allows an attacker to alter unintended backend parameters, potentially resulting in unauthorized data visibility or control over localized system functions depending on the level of user privileges.
+
+## Remediation
+*   Implement strict type-casting and whitelist character maps on all parameters incoming to internal routing directories (`/api/internal/*`).
+*   Ensure structural metadata parameters are thoroughly parsed as static literals, discarding any execution symbols or block modifiers.

@@ -1,0 +1,66 @@
+This specific list from your tool maps out your target surface for potential Server-Side Request Forgery (SSRF) entry points. SSRF vulnerabilities typically surface when an application accepts a user-supplied URL or hostname parameter and attempts to perform a server-side backend request to that address.
+Under 1win's program rules, a verified High-Severity Readable (Non-Blind) SSRF awards $1,300, while a Blind SSRF awards $750.
+------------------------------
+## High-Probability Surface Mapping from your List
+Based on your ssrf.txt data, three categories of endpoints present the highest theoretical attack surface for SSRF testing:
+## 1. Domain/Host Parameter Endpoints
+
+* https://1win.com/affiliate:link_visit?visit_domain=1win.com
+* https://1win.com/fss/config?domain=1win.com&keys=web
+* Why they stand out: The visit_domain and domain parameters explicitly instruct the backend server which domain context to evaluate or communicate with.
+
+## 2. Embedded Provider URL Routing
+
+* https://1win.com
+* Why it stands out: Game engine integrations heavily rely on callback systems. The lobbyUrl and empty serverHost parameters tell the backend application where to forward user sessions, sync credits, or pull iframe content.
+
+## 3. Base64 Redirection Frameworks
+
+* https://1win.com...
+* Why they stand out: The redirect_data parameter decodes to cleartext JSON arrays containing fields like "domainCheckDuration". If the internal routing engine parses these decoded parameters to establish validation connections, they become high-priority testing parameters.
+
+------------------------------
+## Step-by-Step Safe Verification Framework
+To test these parameters safely without violating the 5 requests per second limit or causing service disruptions, use specialized, passive webhooks.
+## Step 1: Set Up an External Listener (Non-Destructive Callback)
+Never use internal cloud metadata addresses (like 169.254.169.254) or private local networks (127.0.0.1) during initial checks to prevent system disruptions. instead, utilize a unique interaction domain from a tool like Interactsh or Burp Collaborator.
+## Step 2: Injecting the Safe Payload
+Replace the value of target parameters with your collaborator URL.
+
+* Standard Injection: ?visit_domain=yourinteractshdomain.com
+* URL/Protocol Injection: &lobbyUrl=http://yourinteractshdomain.com
+* Encoded Injection: If modifying redirect_data, modify the JSON value inside the string, re-encode it into standard base64 format, and swap it into your request body or URL query.
+
+## Step 3: Differentiating between Client and Server Interactions
+
+* Client Interaction (Open Redirect / Normal Behavior): If your browser changes location to your listener domain, or if your listener registers an IP address belonging to your own local router/ISP, the application is handling the redirect entirely client-side. This is typically out-of-scope or a low-severity open redirect.
+* Server Interaction (SSRF Confirmation): If your listener receives an incoming HTTP request or DNS query originating from an external IP address belonging to the 1win infrastructure (e.g., AWS, Cloudflare, or their dedicated hosting provider), the backend server initiated the connection.
+
+------------------------------
+## HackerOne Markdown Template for SSRF Submissions
+If your collaborator logs confirm a backend server callback, document the vulnerability using the precise format required by the 1win triage team:
+
+# Server-Side Request Forgery (SSRF) via [Parameter Name] on [Endpoint]
+## SummaryA Server-Side Request Forgery (SSRF) vulnerability was identified in the `[Insert Parameter, e.g., visit_domain]` parameter of the `[Insert Path, e.g., /affiliate:link_visit]` endpoint. The application backend accepts user-supplied infrastructure strings and attempts to initiate outbound network requests without strict domain whitelisting. 
+## Target Asset*   **Vulnerable URL**: `https://1win.com/[Insert-Vulnerable-Path]`
+*   **Affected Parameter**: `[Insert-Parameter]`*   **Severity Tier**: High (\$1,300 Non-Blind / \$750 Blind)
+## Pre-requisites*   No special authentication required / [Specify if an active researcher account was active].*   An external interaction logger (e.g., Interactsh / Burp Collaborator).
+## Step-by-Step Reproduction Instructions1. Establish a live monitoring listener session using an interaction server framework (`[your-id].oast.pro`).2. Construct the target request by swapping out the parameter value with your custom server address:
+   `https://1win.com/[path]?[parameter]=[your-id].oast.pro`3. Execute the single request using a manual proxy suite or curl command, verifying that tool traffic stays below 5 requests per second.4. Check the external interaction log server dashboard.
+## Proof of Concept (PoC)```http
+GET /[path]?[parameter]=[your-id].oast.pro HTTP/1.1
+Host: 1win.com
+User-Agent: Mozilla/5.0
+Connection: close
+```
+### Captured Server Callback Log:```text
+[TIMESTAMP] - Received HTTP/DNS Request from 1win Infrastructure IP: [Insert Server IP]
+User-Agent String logged by backend: [Insert Backend User Agent if visible]
+```
+## ImpactAn attacker can utilize the 1win backend architecture as a proxy to route unauthorized traffic. Depending on infrastructure network isolation, this can allow an attacker to trace local port availability, map internal networks, or interact with unauthenticated local API directories.
+## Suggested Remediation*   **Strict Whitelisting**: Restrict values supplied to internal redirection or check mechanisms to an explicit whitelist of trusted internal or partner domains.
+*   **Protocol Restriction**: Disable unused protocols (such as `gopher://`, `file://`, `ftp://`) and force the parsing engine to accept only strict validation strings rather than full URLs.
+
+------------------------------
+If you are currently observing the behavior of your collaborator logs while interacting with parameters like visit_domain or lobbyUrl, let me know what types of incoming requests (DNS, HTTP, or nothing) are hitting your listener. I can help you differentiate between a client-side redirect and a true server-side callback safely.
+

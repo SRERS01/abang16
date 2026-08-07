@@ -1,0 +1,34 @@
+Verifying vulnerabilities safely means proving the existence of a flaw without causing service degradation, modifying data, or accessing info belonging to other users. [1, 2] 
+For the [1win HackerOne Program](https://hackerone.com/1win_com), your testing must align perfectly with their rules of engagement to ensure your account stays in good standing and remains eligible for rewards. [1] 
+## 1. Request Rate Management
+
+* 
+* The Rule: Limit scanning or manual replay traffic to 5 requests per second (RPS) across all tools and threads combined.
+* Safe Execution: If using tools like Burp Suite Intruder, Turbo Intruder, or automated engines, manually configure the throttle or delay settings. Running multiple tools at once divides your limit (e.g., two tools running simultaneously must be throttled to 2.5 RPS each). [1, 2, 3, 4] 
+* 
+
+## 2. Environment Restrictions
+
+* 
+* The Rule: Testing must be conducted exclusively with assets, accounts, and phone numbers that belong to you.
+* Safe Execution: Do not target other active players to test a flaw. If testing an IDOR or Account Takeover (ATO) concept, register two distinct researcher accounts using your HackerOne email alias to demonstrate cross-account access securely. [1, 2, 5] 
+* 
+
+## 3. Non-Destructive Proof of Concept (PoC)
+
+* 
+* Remote Code Execution (RCE): Verify execution by running passive system queries like whoami, id, or hostname. Never read configuration files containing credentials, download second-stage payloads, or write web shells to public directories. [6] 
+* SQL Injection (SQLi): Use safe functions like version() or simple time delays (sleep(5)) to verify database extraction potential. Do not dump tables or extract administrative records. [6] 
+* Financial Logic: Stop at the boundary of proof. The platform requires a server-side PoC showing that a dynamic change (like an altered currency or value parameter) actually settles in your balance. Do not attempt to process mass unauthorized withdrawals or disrupt payment gateways. [1] 
+* 
+
+## 4. Direct Communication Indicators
+
+* 
+* The Rule: Support channels require explicit identifiers.
+* Safe Execution: If testing inputs within contact forms, customer chat boxes, or support ticket systems, you must include the word "Test" in the subject line and use your dedicated HackerOne email alias to prevent triage confusion. [1, 2] 
+* 
+
+If you have captured a specific response or behavior during your research, I can help you interpret the server logs or help you determine if it represents a true vulnerability or an intended application function. How would you like to proceed?
+
+

@@ -1,0 +1,64 @@
+This final endpoint list highlights your target surface for testing Local File Inclusion (LFI) and path traversal anomalies. Local File Inclusion occurs when an application accepts user-supplied input to construct a file path on the server backend without proper validation, allowing an attacker to read local server files.
+Under 1win's program policies, verified Local File Access / Manipulation (LFI, RFI, XXE) vulnerabilities fall into the Critical Severity tier and qualify for a $1,200 bounty.
+------------------------------
+## High-Surface Parameter Mapping from your List
+When auditing for file inclusion, look for parameters that accept language codes, specific internal paths, or file-rendering identifiers.
+## 1. Language and Locale Paths
+
+* https://1win.com/common/title?path=bets&lang=en
+* https://1win.com
+* Why they stand out: Localization engines often pull static text blocks from the server's local file system based on input values (e.g., loading /var/www/locales/[INPUT].json). If an attacker breaks out of the expected directory context using path traversal characters, they can force the engine to read arbitrary files.
+
+## 2. Translation Routing Directories
+
+* https://1win.com/fss/translations/cn?domain=1win.com&appName=web
+* https://1win.com/fss/translations/en?appName=web&h=768148d07d87108e
+* Why they stand out: Endpoints structured like /translations/cn or /translations/en map language variables directly into the URL path. If the web server or application router dynamically interprets the trailing segment to fetch local text components, the routing logic itself becomes a target for directory traversal sequences.
+
+## 3. Content Path Selectors
+
+* https://1win.com/common/title?path=bets&lang=en
+* Why it stands out: The path=bets parameter explicitly names a resource path block. If the backend resolves this parameter using unvalidated string concatenation or template lookups on the local operating system, it can be tested for traversal.
+
+------------------------------
+## Step-by-Step Safe Verification Framework
+To test these parameters safely under the 5 requests per second limit without degrading server performance, utilize safe, non-destructive file paths.
+## Step 1: Delimiter Interpretation (Null and Character Checks)
+Verify how the parameter processes standard directory traversal separators like forward slashes (/), backward slashes (\), or dot sequences (.).
+
+* Action: Modify a path parameter with a benign alteration, such as adding a dot segment:
+?path=bets/. or ?path=./bets
+* Safe Observation: If the response loads the page normally, the server handles relative directory paths dynamically. If it throws an HTTP 400 Bad Request or an explicit application routing failure, the parameters are tightly bounded.
+
+## Step 2: Safe Relative Path Traversal
+Test for directory breakout by attempting to read standard, non-sensitive application environment files or known public assets on the server rather than modifying system directories.
+
+* Action: Use a non-destructive relative directory escape sequence targeting a default system configuration index (e.g., trying to step backward to reach an exposed layout component or public config file if the underlying platform OS is inferred).
+* Example traversal attempt: ?lang=../../[inferred_base_path]/en
+* Safe Observation: Monitor the response contents. If the application returns raw code blocks or system error leaks instead of a standard 404 page, path processing logic is active. Do not attempt to access root level configuration credentials or system files.
+
+------------------------------
+## HackerOne Markdown Template for LFI Submissions
+If your localized testing confirms that an input parameter processes file paths dynamically and exposes arbitrary local files, document your finding for the 1win triage team using this format:
+
+# Local File Inclusion (LFI) via Unsanitized Input in [Parameter Name]
+## SummaryA Local File Inclusion (LFI) vulnerability was identified within the `[Insert Parameter, e.g., path / lang]` parameter of the `[Insert Endpoint Path]` endpoint. The application uses user-controlled data to locate and render structural components from the server's local file system without sufficient validation. An attacker can use directory traversal characters to read internal application files, matching 1win's **Critical** severity tier ($1,200 bounty).
+## Vulnerable Asset*   **Target Endpoint URL**: `https://1win.com/[Insert-Path]`
+*   **Affected Parameter Layer**: `[Insert-Parameter]`*   **Severity Tier**: Critical (CVSS 8.6)
+## Pre-requisites*   No special privileges required / [Specify if an active researcher test session was required].*   Testing traffic restricted strictly under the 5 requests-per-second boundary.
+## Step-by-Step Reproduction Instructions1. Navigate to the target page with an active interception proxy: `https://1win.com/[path]?[parameter]=[valid_value]`
+2. Modify the target query parameter to include a safe, relative directory breakout path string: `[Your Safe Non-Destructive Payload]`3. Transmit the standalone request to the server host.4. Observe the response content block to confirm if the backend reads from an unvalidated directory.
+## Proof of Concept (PoC)```http
+GET /[path]?[parameter]=[Safe-Breakout-Payload] HTTP/1.1
+Host: 1win.com
+Connection: close
+```
+*Note: The response successfully bypassed folder boundaries and returned the raw layout elements of the local infrastructure file template rather than a standard localized error message.*
+## ImpactAn unauthorized operator exploiting this vulnerability can read internal application configurations, source files, or localized scripts stored on the server file system. This subverts application isolation layers and can result in the exposure of internal environment structures.
+## Suggested Remediation*   **Indirect Mapping Whitelists**: Implement a strict, closed whitelist for any parameter that dictates local page content selection. Map input keys (e.g., `lang=1`, `lang=2`) to static file paths server-side rather than accepting raw filename inputs.
+*   **Path Sanitization**: Use built-in filesystem sanitization functions (such as Java's `Paths.get().normalize()` or PHP's `basename()`) to ensure input parameters strip out all directory traversal sequences (`..` or `/`) before processing occurs.
+
+------------------------------
+With this final file analysis, you have successfully mapped out your entire raw attack surface (rce.txt, ssrf.txt, sqli.txt, xss.txt, idor.txt, redirect.txt, interestingEXT.txt, and lfi.txt) using your gf configuration profiles.
+If you want to review your next steps, I can help you write a clean automated wrapper script to test these parameters within the safe 5 requests per second limit, or help you review specific HTTP error logs you have already generated. How would you like to proceed?
+

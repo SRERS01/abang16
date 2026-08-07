@@ -1,0 +1,63 @@
+Your consolidated parameter list maps the foundational parameter structure used across 1win's web routing, transaction history tracing, and external API interfaces.
+When presenting a comprehensive assessment for a Bug Bounty program, organizing these raw endpoints into a structured Attack Surface Topology allows developers and triagers to quickly isolate risks.
+------------------------------
+## Attack Surface Matrix Analysis
+An overview of how these parameters map to vulnerability classifications and their corresponding platform severity tiers based on your discovery files:
+
+| Target Parameter | Behavioral Analysis | Vulnerability Context | Severity Class |
+|---|---|---|---|
+| cda_id | Unique dynamic hash tracking data lookups. | IDOR / BOLA | High ($1,000) |
+| redirect_data | Base64-encoded structural JSON matrices. | SSRF / Open Redirect Chain | High ($1,300) |
+| search | Unvalidated inputs reflected on UI views. | Reflected or DOM XSS | Medium ($150) |
+| id / castId | Direct record fetch tags handled by backend queries. | SQL Injection (SQLi) | Critical ($1,500) |
+
+------------------------------
+## Safe Verification Roadmap (Prioritized Checklist)
+To audit this parameter map efficiently while respecting the 5 requests per second rate limit, prioritize your testing into three phases:
+## Phase 1: High-Severity Logic Audits (IDOR)
+
+* Target: Endpoints like /betting/bets-history?cda_id=... or /panel?cda_id=....
+* Method: Authenticate two separate researcher sessions via your proxy suite. Extract the cda_id from Account B, and place it into a request using Account A’s authentication headers. If the response displays Account B's records, an access control failure exists.
+
+## Phase 2: Structural Boundary Audits (SQLi & XSS)
+
+* Target: Inputs like ?search= or ?id=.
+* Method:
+* For XSS: Submit safe string tokens like AUDITXSS"'< and analyze the browser's Document Object Model (DOM) to verify if characters are escaped into safe HTML entities.
+   * For SQLi: Append logical boolean assertions (e.g., AND 1=1 vs AND 1=2) or a benign database latency check to see if query processing delays change.
+
+## Phase 3: Matrix Token Decoupling (SSRF)
+
+* Target: Base64 JSON strings inside redirect_data=.
+* Method: Base64-decode the parameter payload, identify any internal destination string components (like domain references or redirect loops), swap them safely with a passive web monitor host (like an Interactsh address), re-encode, and review your logs for server-initiated network traffic.
+
+------------------------------
+## Complete Program Report Template for HackerOne
+If your systematic testing yields a confirmed flaw matching any of these vectors, you can use this comprehensive Markdown report format to document your findings:
+
+# [Vulnerability Classification] via Unsanitized Parameters in [Endpoint Component]
+## SummaryA security analysis of the platform parameter architecture identified an input handling anomaly within the `[Insert Target Parameter, e.g., cda_id / id / search]` parameter at the `[Insert Vulnerable Path]` endpoint. The application component processes strings supplied through this interface without strict validation boundaries, leading to [Describe effect, e.g., cross-account data exposure / query context breakout].
+## Vulnerable Asset Specification*   **Target URL Entrypoint**: `https://1win.com/[Insert-Path-Here]`
+*   **Affected Parameter Layer**: `[Insert-Parameter]`
+*   **HTTP Methods Explored**: `GET` / `POST`
+## Testing Requirements & Environmental Prerequisites*   Testing was executed entirely within active researcher test profiles using dedicated HackerOne tracking aliases.*   Traffic flows were explicitly restricted to stay below the maximum program boundary of 5 requests per second.
+## Detailed Step-by-Step Reproduction Instructions1. Using an active test browser instance, capture the structural traffic pattern mapping to: `https://1win.com/[vulnerable-path]`2. Pass the request sequence into a manual editing tool or interceptor proxy.3. Modify the target query parameter to contain the safe, non-destructive verification sequence:
+   `[Insert Your Safe Verification Payload Here]`4. Transmit the standalone request to the destination asset.5. Analyze the application response structure to verify anomalous execution or layout modification.
+## Proof of Concept (PoC)```http
+GET /[vulnerable-path]?[parameter]=[Your-Safe-Payload] HTTP/1.1
+Host: 1win.com
+User-Agent: Mozilla/5.0 (Researcher-Context)
+Connection: close
+```
+### Observed Behavior Documentation```text
+[Insert specific behavior observed, such as:
+ - HTTP 200 OK containing data from a secondary test profile (IDOR)
+ - Distinct 5000ms server response delay matching latency checks (SQLi)
+ - Script console logging output indicating breakout (XSS)]
+```
+## Impact AssessmentAn unauthorized operator could target this entry point to influence internal processing flows. Depending on the exact behavior of the underlying infrastructure, this could risk exposing private localized configuration logs, causing cross-session visibility anomalies, or altering the execution flow of server-side data interactions.
+## Recommended Remediation Guidelines*   **Parameterized Controls**: Implement strict server-side validation models that enforce parameterization or data separation for all query layers.*   **Strict Context Encoding**: Ensure that any user-controlled parameter arrays used for rendering layout components are strictly sanitized or type-cast before execution to prevent structure manipulation.
+
+------------------------------
+If you are currently observing specific responses while analyzing parameters like cda_id or redirect_data, let me know what HTTP response codes (e.g., 200, 403, 500) or content alterations occur when you insert structural characters. I can help you interpret the application's verification behavior safely.
+

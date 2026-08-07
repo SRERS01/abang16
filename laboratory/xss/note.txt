@@ -1,0 +1,70 @@
+This endpoint list focuses on the frontend rendering surface of the platform. Cross-Site Scripting (XSS) typically occurs when user-controlled query strings are reflected back into the document object model (DOM) or source HTML code without encoding.
+Under 1win's program policies, a valid Cross-Site Scripting (XSS) vulnerability with execution proof falls into the Medium Severity tier and awards $150, while an Admin/Support Interface Blind XSS reaches the High Severity tier at $1,500. Self-XSS and scenarios blocked entirely by Content Security Policy (CSP) do not qualify for rewards.
+------------------------------
+## High-Surface Parameter Mapping from your List
+When hunting for client-side injection flaws, focus on endpoints that handle dynamic tracking identifiers, modal names, or content configuration frameworks.
+## 1. Real-Time Application Search Fields
+
+* https://1win.com/casino?search=
+* Why it stands out: Search fields are highly likely to reflect input strings directly into user-facing view layouts (e.g., displaying text like 'Results for: "[INPUT]"'). If the input text is not HTML-entity encoded, script context breakout can happen.
+
+## 2. Referral and Partner Tracking Parameters
+
+* http://1win.com/betting?sharebet=2va7bb1&p=o83i
+* https://1win.com/betting?p=3zf0&sharebet=F_d4jpO
+* http://1win.com/?open=register&p=gwpa
+* Why they stand out: The p parameter (often indicating a partner tracking ID) and the sharebet variable are parsed by client-side JavaScript frameworks to preserve referral state. If these values are unsafely passed to dynamic DOM injection sinks like innerHTML or document.write, DOM-based XSS can occur.
+
+## 3. Frontend Structural Components & Modals
+
+* https://1win.com
+* Why it stands out: The modal parameters accept complex URL-encoded JSON payloads specifying structural keys like {"name":"..."}. If a renderer utilizes the template metadata without validation, payload injection might occur inside the generated HTML components.
+
+------------------------------
+## Step-by-Step Safe Verification Framework
+To test these entry points without breaking platform execution flows or exceeding the 5 requests per second throttling policy, follow a safe, gradual string breakout strategy.
+## Step 1: Context Detection (Reflection Mapping)
+Instead of starting with active execution payloads like <script>, use a benign, unique alphanumeric string to determine exactly where and how your text lands in the frontend source code.
+
+* Action: Supply a specific tracking token, such as ?search=XSSREFLECTTEST1, to the target endpoint. Open your browser's Developer Tools (F12), navigate to the Elements or Source tab, and search for your token.
+* Safe Observation: Note whether your string is embedded inside standard HTML text blocks, enclosed between attribute quotation marks (e.g., value="XSSREFLECTTEST1"), or placed inside an existing execution block like <script>var context = "XSSREFLECTTEST1";</script>.
+
+## Step 2: Special Character Escape Check
+Test if the backend or client-side sanitizers neutralize structural markup tags.
+
+* Action: Append a harmless string containing essential HTML and JavaScript delimiter operators:
+?search=XSSREFLECTTEST1"'>
+* Safe Observation: Inspect the reflection point in the DOM source view. If the characters appear exactly as written ("'>), the context can be broken out of. If they are converted into safe HTML entities (like &quot;, &#39;, or &gt;), the context is properly protected.
+
+## Step 3: Proving Execution Safely
+If the delimiter check succeeds, verify full execution using non-intrusive operations. Never use loops that freeze browser tabs or scripts that access session local storage keys.
+
+* Action: Inject a benign mathematical or functional command.
+* Attribute Context Breakout: " autofocus onfocus=console.log(1) 
+   * HTML Context Breakout: <u>Test</u> or <img src=x onerror=console.log(1)>
+* Safe Observation: Check the Developer Tools Console tab. If the integer 1 is written to the log interface, execution is confirmed.
+
+------------------------------
+## HackerOne Markdown Template for XSS Submissions
+If your localized testing confirms that an input parameter breaks out of context and triggers script execution, document the bug for the 1win triage team using this structure:
+
+# Cross-Site Scripting (XSS) via [Parameter Name] on [Endpoint Path]
+## SummaryA Reflected Cross-Site Scripting (XSS) vulnerability was identified in the `[Insert Parameter, e.g., search]` parameter of the `[Insert Path, e.g., /casino]` endpoint. The application reflects user-supplied query strings directly into the DOM structure without proper output encoding, allowing for client-side script execution within the user's session context.
+## Vulnerable Asset*   **Target Page**: `https://1win.com/[Insert-Path]`
+*   **Affected Parameter**: `[Insert-Parameter-Name]`*   **Severity Tier**: Medium (\$150 bounty)
+## Requirements & Pre-requisites*   No authenticated session required / [Specify if an active test session was required].*   Standard modern web browser testing context.
+## Step-by-Step Reproduction Instructions1. Open a web browser and navigate to the targeted platform path containing your safe proof payload:
+   `https://1win.com/[path]?[parameter]=%3Cimg%20src%3Dx%20onerror%3Dconsole.log(document.domain)%3E`2. Open the browser Developer Tools interface (F12) and switch to the **Console** panel.3. Observe that the payload successfully bypasses encoding, triggers the fallback event, and logs the execution context data directly to the console.
+## Proof of Concept (PoC)```html
+<!-- Example of the resulting unsanitized DOM reflection structure observed -->
+<div class="search-results-header">
+    Results for: <img src=x onerror=console.log(document.domain)>
+</div>
+```
+*(Please find attached `console_log_capture.png` documenting the verified application execution output).*
+## ImpactAn attacker could craft a malicious link containing an execution string and distribute it via social engineering channels. If a user clicks the link, the script executes within their active browser session, potentially allowing unauthorized actions to be performed on behalf of the user or altering the visual presentation of the target application interface.
+## Suggested Remediation*   **Context-Aware Output Encoding**: Implement strict context-aware output encoding across all frontend rendering templates. Ensure that query tokens reflected into HTML contexts undergo full HTML-entity encoding before display.
+*   **Secure Framework Sinks**: Avoid the use of flexible inner layout modifiers (such as `innerHTML` or `v-html` in framework elements) when displaying raw query strings. Use safe alternative properties like `textContent` or `innerText` to ensure browser rendering engines treat the input strictly as text.
+
+------------------------------
+If you are currently evaluating parameter reflections on endpoints like search or sharebet, let me know where your test string appears in the source HTML code (e.g., inside an input tag attribute or a text block). I can help you determine the appropriate context breakout method safely.

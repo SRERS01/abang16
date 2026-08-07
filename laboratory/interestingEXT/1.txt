@@ -1,0 +1,67 @@
+This file contains extracted file extensions, static scripts (.js), configuration objects (.json), and system manifests (.xml).
+While static configurations and scripts do not directly accept query execution syntax like typical parameters, they are highly valuable for a process known as Reconnaissance-Driven Source Code Auditing. Bug bounty triage workflows look at how these endpoints map out internal routing maps and client-side dependencies.
+------------------------------
+## Attack Surface Topology of Static Extensions
+Static assets are grouped into distinct testing priorities based on their data leakage or client-side execution potential:
+## 1. Configuration & Domain Routing Maps
+
+* https://1win.com/domains.json?1=1760280437739
+* https://1win.com/api/translations/v1/frontend/common.config/en-001.json
+* Why they are audited: These JSON arrays define frontend environmental configurations. Analysts audit them to identify hidden staging directories, partner API root environments, client-side cryptographic salts, or undocumented development features that can reveal broader testing scopes.
+
+## 2. JavaScript Bundles & Cache-Busted Assets
+
+* .../assets/modal.confirm-email-[CACHE_BUSTER].js
+* .../assets/modal.game.login-required-[CACHE_BUSTER].js
+* Why they are audited: The long list of unique string extensions (1TZW9vBX, 5hWBvWgg, B3gTuSbg) represents individual application feature updates or variations. Analysts extract these scripts to perform static code analysis, looking for hidden client-side logic flaws or internal API parameters.
+
+## 3. Legacy Web Modules
+
+* https://1win.com/my/ComClass/jquery-ui/js/jquery.dataTables.FixHeader.js
+* https://1win.com/Microsoft.XMLHTTP
+* Why they are audited: Directory indicators like /ComClass/ point to legacy code structures or third-party web dependencies. If these dependencies use outdated, unpatched versions (e.g., legacy jQuery structures vulnerable to Prototype Pollution), they can introduce vulnerabilities.
+
+------------------------------
+## Step-by-Step Safe Verification Framework
+To review these assets safely without running intensive crawlers or exceeding the platform's 5 requests per second speed limit, use passive evaluation and scanning.
+## Step 1: Passive Script Secrets Extraction
+Instead of testing live server inputs, analyze the source text of the scripts directly for hardcoded access tokens or credentials.
+
+* Action: Download a target file using a simple terminal command or view it via your browser:
+
+curl -s "https://1win.com/api/translations/v1/frontend/common.config/en-001.json"
+
+* Safe Observation: Pass the output into local matching engines to check for sensitive exposed keys, unauthenticated endpoints, or private internal URLs.
+
+## Step 2: Client-Side Dependency Vulnerability Mapping
+Check the version metadata of the exposed scripts to identify known historical bugs.
+
+* Action: Locate the header information or version numbers inside legacy paths like jquery.dataTables.FixHeader.js.
+* Safe Observation: Search public vulnerability databases for that specific version number. A match is only eligible for a bounty under 1win's rules if you provide a practical proof of concept proving the exploit works on their live site. Reports based only on a software version number are out of scope.
+
+------------------------------
+## HackerOne Markdown Template for Static Leakage Issues
+If you find a hardcoded secret or an unauthenticated internal endpoint inside these assets that directly exposes confidential information, document your submission using this format:
+
+# Information Disclosure via Hardcoded Sensitive Data in [Filename.js]
+## SummaryAn information disclosure vulnerability was identified within the static asset deployment architecture. The JavaScript file `[Insert File Path]` contains hardcoded sensitive data elements, such as `[Insert Exposed Element, e.g., API keys / internal configurations]`. An unauthorized external actor can read this file to map out internal infrastructure or gain unauthorized access to partner services.
+## Vulnerable Asset Specification*   **Target Asset URL**: `https://1win.com/[Insert-Path-To-Static-File]`*   **Data Category**: Information Disclosure*   **Severity Tier**: High / Medium depending on data classification (\$400 - \$1,000 bounty)
+## Pre-requisites*   No authenticated platform session required (Publicly accessible static file path).*   All testing was conducted completely passively via single-request downloads.
+## Step-by-Step Reproduction Instructions1. Open a terminal or manual browser instance.2. Issue a clean request to retrieve the target script file:
+   `https://1win.com/[vulnerable-asset-path].js`3. Search or parse the file contents for the hardcoded sensitive data string.4. Verify the functionality of the exposed data element safely to confirm its active status.
+## Proof of Concept (PoC)```http
+HTTP/1.1 200 OK
+Content-Type: application/javascript
+...
+
+var internal_config = {
+    "private_service_endpoint": "https://1win.private",
+    "secret_token": "EXPOSED_CREDENTIAL_STRING_HERE"
+};
+```
+## ImpactExposing internal tokens or configuration strings allows unauthorized actors to view architectural definitions or interact directly with backend partner services. This subverts access controls and expands the available attack surface of the network.
+## Suggested Remediation*   **Build-Step Exclusions**: Remove sensitive internal configurations, non-public URLs, and tokens from client-side scripts during the production build process.*   **Environment Variables**: Use runtime environment variables on the server side to handle sensitive operations, ensuring secret strings are never compiled into public frontend bundles.
+
+------------------------------
+If you are currently extracting variables or reviewing the contents of files like common.config/en-001.json or domains.json, let me know what specific configuration objects or keys are displayed inside them. I can help you analyze if the exposed configuration values constitute a security risk safely.
+
