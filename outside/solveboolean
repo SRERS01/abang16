@@ -1,0 +1,54 @@
+To use Boolean math to find vulnerabilities, security researchers look for inconsistencies in how a server handles logical truth statements. This technique is most famously used in Blind SQL Injection (SQLi) and Blind Command Injection testing. [1] 
+When a server does not show error messages or data on the screen, you can force its database or interpreter to evaluate mathematical Boolean expressions ($True$ or $False$). By observing how the server responds, you can extract hidden information byte by byte. [2, 3, 4, 5, 6] 
+------------------------------
+## The Mathematical Formula
+The testing process relies on the Identity Law and the Dominative Law of Boolean algebra: [7] 
+$$A \land \text{True} = A$$ 
+$$A \land \text{False} = \text{False}$$ 
+In web security testing, we construct an injection payload where $A$ represents the normal server response (such as a webpage loading successfully with an HTTP 200 status code). We then append a logical conjunction ($\land$ / AND) along with a conditional statement ($P$) that we want to test:
+$$\text{Server Response} = \text{Normal State} \land P$$ 
+
+* If the condition $P$ evaluates to True, the entire expression simplifies to $True$, and the server returns the normal webpage layout.
+* If the condition $P$ evaluates to False, the entire expression simplifies to $False$, causing the server response to change (e.g., loading an empty page, an error message, or a different HTTP status code). [8] 
+
+------------------------------
+## Step-by-Step Execution Workflow
+To manually find and exploit a flaw outside a user account using Boolean algebra, follow these structured steps:
+## Step 1: Establish the Baseline Response ($A$)
+Locate an unauthenticated input parameter that interacts with a backend database or interpreter (for example, a public product ID or game section endpoint).
+
+* Test Request: https://target.com
+* Observation: The server responds with an HTTP status code of 200 OK and a page size of exactly 4,500 bytes. This state represents your logical True Baseline ($A$).
+
+## Step 2: Inject a Tautology ($P = \text{True}$) [9, 10] 
+Modify the input parameter by appending a statement that is mathematically always true using the logical AND operator ($1 = 1$). [11] 
+
+* Payload Request: id=100 AND 1=1
+* Mathematical Evaluation:
+$$\text{Response} = A \land (1 = 1) \implies A \land \text{True} \implies A$$ 
+* Observation: The server returns the exact same 4,500 bytes response. This confirms the backend server injected your math directly into its logical interpreter instead of treating it as plain text. [12] 
+
+## Step 3: Inject a Contradiction ($P = \text{False}$) [13, 14, 15] 
+Modify the input parameter by appending a statement that is mathematically always false ($1 = 2$). [16] 
+
+* Payload Request: id=100 AND 1=2
+* Mathematical Evaluation:
+$$\text{Response} = A \land (1 = 2) \implies A \land \text{False} \implies \text{False}$$ 
+* Observation: The server logic breaks. It returns an HTTP status code of 200 OK but the page size drops to 312 bytes (an empty list or generic error text). Because the server output changed drastically between Step 2 and Step 3, you have mathematically proven that the endpoint is vulnerable to Boolean-based Injection. [17] 
+
+## Step 4: Extract Data Byte-by-Byte (Bitwise Guessing)
+Now that you control the server's logical flow, you can use binary comparison queries to ask the server yes-or-no mathematical questions about its internal data.
+To find out what operating system or database user the server is running under without seeing the text, test individual characters using their ASCII numeric values: [18] 
+
+* Question 1: Is the first character of the database user name greater than ASCII value 100?
+* Payload: id=100 AND (ASCII(SUBSTRING(USER(),1,1)) > 100)
+   * Result: Server returns 4,500 bytes ($True$). The character value is higher than 100.
+* Question 2: Is the first character greater than ASCII value 110?
+* Payload: id=100 AND (ASCII(SUBSTRING(USER(),1,1)) > 110)
+   * Result: Server returns 312 bytes ($False$). The character value is not higher than 110. [19] 
+
+By narrowing down the numbers mathematically using a binary search pattern, you can pinpoint the exact ASCII code, translating the server's logical true/false behavior back into plain text strings. [20] 
+------------------------------
+## Restating the Result## ✅ Boolean Logic Verification
+When an application's output changes predictably based on the truth value of an injected mathematical expression ($A \land \text{True}$ vs. $A \land \text{False}$), a logical injection vulnerability is present on the backend server. [21] 
+If you are interested in exploring how developers protect against this, let me know if you would like to see how parameterized backend database queries mathematically isolate user inputs so they can never alter application logic
