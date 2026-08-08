@@ -1,0 +1,53 @@
+To determine if a calculation is happening on the frontend (browser) or the backend (server), you need to look at where the data is processed and how it travels. [1, 2] 
+Here is exactly how you can tell the difference using your browser's built-in developer tools. [3] 
+------------------------------
+## Method 1: Check the Network Tab (The Easiest Way)
+If the calculation happens on the backend, your browser has to send the raw numbers to the server and wait for the answer to come back.
+
+   1. Open your target website.
+   2. Right-click anywhere and select Inspect (or press F12), then click on the Network tab. [4, 5, 6, 7] 
+   3. Trigger the calculation on the website (e.g., click "Calculate Total" or add an item to the shopping cart). [8] 
+   4. Look at the Network log:
+   * It is a Backend Calculation if a new network request (like a POST or GET request) appears immediately after you click. If you click that request and look at the Response, you will see the calculated final number sent from the server.
+      * It is a Frontend Calculation if absolutely nothing appears in the Network tab, yet the answer instantly changes on your screen. [9, 10] 
+   
+------------------------------
+## Method 2: Inspect the Page Source / Elements
+Frontend JavaScript must be loaded into your browser to execute. [11] 
+
+   1. In the Inspect panel, go to the Elements or Sources tab.
+   2. Search for the HTML button or input field that triggers the calculation.
+   3. Look for an event listener or attribute attached to it, such as onclick="calculateTotal()" or an event tied to a JavaScript framework (like React or Vue).
+   4. If you see a JavaScript function name attached directly to the visual button, the calculation is happening right there on the frontend. [12, 13, 14, 15, 16] 
+
+------------------------------
+## Method 3: Test While Offline
+Because frontend JavaScript runs entirely inside your computer's RAM, it does not need an internet connection to perform basic math.
+
+   1. Load the webpage completely. [17] 
+   2. Disconnect your computer from the Wi-Fi (or go to the Network tab in Inspect and change the throttling dropdown from "No throttling" to Offline). [18] 
+   3. Try to run the calculation.
+   4. The Verdict:
+   * If the math still works instantly while offline, it is a Frontend calculation.
+      * If the website spins, freezes, or throws a connection error, it requires a Backend server to do the math. [19, 20] 
+   
+------------------------------
+## Summary Cheat Sheet
+
+| Feature | Frontend Calculation | Backend Calculation |
+|---|---|---|
+| Where it runs | Inside your browser (Client-side) | On a remote server (Server-side) |
+| Network Traffic | Silent (0 network requests) | Active (Sends data, receives answer) |
+| Works Offline? | Yes | No |
+| Security Risk | High (Users can tamper with JS variables) | Low (Users cannot see or touch the code) |
+
+## Why This Matters For Security
+A secure website will always handle final financial calculations on the backend. If a website calculates a checkout total using frontend JavaScript, an attacker can simply open the browser console, change the totalPrice variable to $0.01, and hit submit.
+To help look at a specific site, let me know:
+
+* What website or application type (e.g., e-commerce cart, crypto swap, loan calculator) are you testing?
+* Did you see any network requests pop up when you ran the calculation?
+* Do you want to see how to use the Sources tab to pause the code exactly when the calculation happens?
+
+
+

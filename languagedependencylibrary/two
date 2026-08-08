@@ -1,0 +1,34 @@
+To find all the libraries used by an application when you only know the programming language, your strategy depends entirely on your perspective.
+If you are auditing an open-source project where you can see the source code, you look for specific standard configuration files. If you are attacking or testing a live, closed system from the outside, you must use scanning and inference techniques.
+Here is exactly how to find the libraries in both scenarios:
+## Scenario 1: Inside Look (You have access to the source code)
+Every programming language has a standardized package manager. Developers list all of their project's libraries inside specific blueprint files. You just need to open these files: [1] 
+
+* Python: Look for requirements.txt, pyproject.toml, Pipfile, or poetry.lock.
+* JavaScript / Node.js: Look for package.json or package-lock.json.
+* Java: Look for pom.xml (Maven) or build.gradle (Gradle).
+* C# / .NET: Look for .csproj files or packages.config.
+* PHP: Look for composer.json or composer.lock. [2] 
+
+## Scenario 2: Outside Look (You only see a live website or server)
+If you do not have the source code, you cannot instantly see a clean list. Instead, you have to look for digital footprints left behind by popular libraries: [3] 
+
+* Inspect the Frontend Source: Right-click a webpage, choose View Page Source, and look at the <script> tags. File names often reveal libraries and versions directly (e.g., <script src="js/jquery-3.6.0.min.js">). [4, 5] 
+* Analyze Error Messages (Stack Traces): Triggering an error on purpose—such as typing symbols into a login form or sending malformed data—can force the application to crash. The resulting error page often prints out a "stack trace" listing the exact names of the internal libraries that failed.
+* Scan for Known Paths: Many libraries create predictable folder structures on a server. Security scanners use "brute-force" guessing to check if hidden URLs exist (e.g., checking if ://example.com reveals specific WordPress library extensions).
+
+## Automated Tools to Do This For You
+Instead of hunting manually, professionals use specialized software tools to extract library lists instantly:
+
+   1. Wappalyzer / BuiltWith (Browser Extensions): These tools automatically analyze a live website as you browse it, telling you the exact languages, frameworks, and frontend libraries running in the background. [6] 
+   2. Software Composition Analysis (SCA) Tools: If you have the code, tools like Snyk, Trivy, or GitHub Dependency Graph automatically scan the project files and generate a complete list of every single library and version used.
+
+To help map out your next step, let me know:
+
+* Are you looking at a live website from the outside, or do you have a folder of source code on your machine?
+* What programming language did you discover is being used?
+* Do you want to see an example of how to read a package manifest file for that specific language?
+
+Let me know how you would like to proceed.
+
+
